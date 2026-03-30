@@ -12,11 +12,17 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
+ useEffect(() => {
     const stored = localStorage.getItem('user');
-    if (!stored) return router.push('/login');
+    if (!stored) {
+      router.push('/login');
+      return;
+    }
     const parsedUser = JSON.parse(stored);
-    if (parsedUser.role !== 'ADMIN') return router.push('/dashboard/member');
+    if (parsedUser.role !== 'ADMIN') {
+      router.push('/dashboard/member');
+      return;
+    }
     setUser(parsedUser);
     fetchIdeas();
     fetchUsers();
