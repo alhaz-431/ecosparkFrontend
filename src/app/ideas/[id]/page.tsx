@@ -1,206 +1,205 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import api from '@/lib/axios';
 import Link from 'next/link';
+import api from '@/lib/axios';
+import IdeaSkeleton from '@/components/IdeaSkeleton'; 
 
-export default function IdeaDetailsPage() {
-  const { id } = useParams();
-  const router = useRouter();
-  const [idea, setIdea] = useState<any>(null);
+export default function IdeasPage() {
+  const [ideas, setIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [voting, setVoting] = useState(false);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const [type, setType] = useState('');
+  const [sort, setSort] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (stored) setUser(JSON.parse(stored));
-    fetchIdea();
-  }, [id]);
+    fetchIdeas();
+  }, [page, category, type, sort]);
 
-  const fetchIdea = async () => {
+  const fetchIdeas = async () => {
+    setLoading(true);
     try {
-      const res = await api.get(`/ideas/${id}`);
-      setIdea(res.data);
-    } catch (error: any) {
-      if (error.response?.status === 403) {
-        router.push(`/ideas/${id}/purchase`);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVote = async (value: number) => {
-    if (!user) return router.push('/login');
-    setVoting(true);
-    try {
-      await api.post(`/ideas/${id}/vote`, { value });
-      fetchIdea();
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (category) params.append('category', category);
+      if (type) params.append('type', type);
+      if (sort) params.append('sort', sort);
+      params.append('page', page.toString());
+      const res = await api.get(`/ideas?${params.toString()}`);
+      setIdeas(res.data.ideas || []);
+      setTotalPages(res.data.pagination?.totalPages || 1);
     } catch (error) {
       console.error(error);
     } finally {
-      setVoting(false);
+      setTimeout(() => setLoading(false), 500);
     }
   };
 
-  const handleAdminAction = async (status: string, feedbackNote?: string) => {
-    try {
-      await api.patch(`/admin/ideas/${id}/status`, { status, feedbackNote });
-      fetchIdea();
-    } catch (error) {
-      console.error(error);
-    }
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    fetchIdeas();
   };
-
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
-    </div>
-  );
-
-  if (!idea) return (
-    <div className="text-center py-20">
-      <p className="text-gray-500">Idea not found.</p>
-      <Link href="/ideas" className="text-green-700 hover:underline">Back to Ideas</Link>
-    </div>
-  );
-
-  const upvotes = idea.votes?.filter((v: any) => v.value === 1).length || 0;
-  const downvotes = idea.votes?.filter((v: any) => v.value === -1).length || 0;
-  const userVote = user ? idea.votes?.find((v: any) => v.userId === user.id) : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-6 py-10">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors">
+      {/* Header Section */}
+      <section className="bg-gradient-to-br from-green-800 to-emerald-600 dark:from-green-900 dark:to-slate-900 text-white py-16 px-6 text-center">
+        <h1 className="text-4xl font-extrabold mb-4">🌱 All Sustainability Ideas</h1>
+        <p className="text-green-100 text-lg mb-8">Browse, vote and get inspired by community ideas</p>
+        <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto">
+          <input
+            type="text"
+            placeholder="Search ideas..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 p-4 rounded-xl text-gray-800 focus:outline-none shadow dark:bg-slate-800 dark:text-white dark:border-slate-700"
+          />
+          <button type="submit" className="bg-white text-green-700 px-8 py-4 rounded-xl font-bold hover:bg-green-100 transition dark:bg-green-600 dark:text-white dark:hover:bg-green-700">
+            Search
+          </button>
+        </form>
+      </section>
 
-        {/* Back */}
-        <Link href="/ideas" className="text-green-700 hover:underline text-sm mb-6 inline-block">
-          ← Back to Ideas
-        </Link>
+      <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8">
+        {/* Sidebar - Filters */}
+        <div className="hidden lg:block w-64 flex-shrink-0">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-6 sticky top-24 border dark:border-slate-800">
+            <h3 className="font-bold text-gray-800 dark:text-white mb-4">🔍 Filters</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1 block">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+                  className="w-full border dark:border-slate-700 p-2 rounded-lg text-sm focus:outline-none focus:border-green-500 dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="">All Categories</option>
+                  <option value="Energy">⚡ Energy</option>
+                  <option value="Waste">♻️ Waste</option>
+                  <option value="Transportation">🚗 Transportation</option>
+                  <option value="Water">💧 Water</option>
+                </select>
+              </div>
 
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow p-8 mb-6">
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span className="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full">
-              {idea.category?.name}
-            </span>
-            <span className={`text-sm px-3 py-1 rounded-full ${
-              idea.type === 'PAID'
-                ? 'bg-yellow-100 text-yellow-700'
-                : 'bg-blue-100 text-blue-700'
-            }`}>
-              {idea.type === 'PAID' ? `💰 Paid - ৳${idea.price}` : '🆓 Free'}
-            </span>
-            <span className={`text-sm px-3 py-1 rounded-full ${
-              idea.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
-              idea.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
-              'bg-yellow-100 text-yellow-700'
-            }`}>
-              {idea.status}
-            </span>
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1 block">Type</label>
+                <select
+                  value={type}
+                  onChange={(e) => { setType(e.target.value); setPage(1); }}
+                  className="w-full border dark:border-slate-700 p-2 rounded-lg text-sm focus:outline-none focus:border-green-500 dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="">Free & Paid</option>
+                  <option value="FREE">🆓 Free Only</option>
+                  <option value="PAID">💰 Paid Only</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1 block">Sort By</label>
+                <select
+                  value={sort}
+                  onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                  className="w-full border dark:border-slate-700 p-2 rounded-lg text-sm focus:outline-none focus:border-green-500 dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="">Latest First</option>
+                  <option value="top">🏆 Top Voted</option>
+                </select>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <h1 className="text-3xl font-extrabold text-gray-800 mb-4">{idea.title}</h1>
+        {/* Main Content */}
+        <div className="flex-1">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((n) => <IdeaSkeleton key={n} />)}
+            </div>
+          ) : ideas.length === 0 ? (
+            <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border dark:border-slate-800">
+              <div className="text-6xl mb-4">🌿</div>
+              <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">No ideas found.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {ideas.map((idea) => (
+                <div key={idea.id} className="bg-white dark:bg-slate-900 rounded-3xl shadow hover:shadow-2xl transition-all duration-500 overflow-hidden group border dark:border-slate-800 flex flex-col">
+                  {/* Image Holder */}
+                  <div className="bg-gray-100 dark:bg-slate-800 h-52 overflow-hidden relative">
+                    {idea.images?.[0] ? (
+                      <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-6xl opacity-30 group-hover:rotate-12 transition duration-500">🍃</div>
+                    )}
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-white/95 dark:bg-slate-900/95 backdrop-blur px-3 py-1 rounded-full text-[10px] font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest shadow-md">
+                        {idea.category?.name || 'Eco Idea'}
+                      </span>
+                    </div>
+                  </div>
 
-          <div className="flex gap-4 text-sm text-gray-500 mb-6">
-            <span>👤 {idea.author?.name}</span>
-            <span>📅 {new Date(idea.createdAt).toLocaleDateString()}</span>
-          </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="font-bold text-xl text-gray-800 dark:text-white line-clamp-1 group-hover:text-green-600 transition duration-300">{idea.title}</h3>
+                      {idea.type === 'PAID' && (
+                        <div className="flex flex-col items-end">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-black text-lg">৳{idea.price}</span>
+                          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Premium</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 mb-6 leading-relaxed">{idea.description}</p>
+                    
+                    <div className="mt-auto pt-5 border-t dark:border-slate-800">
+                      <div className="flex flex-col gap-3">
+                        {/* বাটন সেকশন - এখানে লিঙ্ক ঠিক করা হয়েছে */}
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/ideas/${idea.id}`}
+                            className={`flex-1 text-center py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+                              idea.type === 'PAID' 
+                              ? 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700' 
+                              : 'bg-green-700 text-white hover:bg-green-800 shadow-lg shadow-green-100 dark:shadow-none'
+                            }`}
+                          >
+                            Details
+                          </Link>
 
-          {/* Images */}
-          {idea.images?.length > 0 && (
-            <div className="mb-6">
-              <img
-                src={idea.images[0]}
-                alt={idea.title}
-                className="w-full h-64 object-cover rounded-xl"
-              />
+                          {/* Purchase Link Corrected to /purchase/ */}
+                          {idea.type === 'PAID' && (
+                            <Link
+                              href={`/purchase/${idea.id}`}
+                              className="flex-1 text-center bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-lg shadow-emerald-100 dark:shadow-none"
+                            >
+                              Buy Now
+                            </Link>
+                          )}
+                        </div>
+
+                        {/* ভোট কাউন্টার */}
+                        <div className="flex items-center justify-between px-1">
+                           <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-gray-400">
+                                <span className="text-base">👍</span> {idea.votes?.filter((v: any) => v.value === 1).length || 0}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-gray-400">
+                                <span className="text-base">👎</span> {idea.votes?.filter((v: any) => v.value === -1).length || 0}
+                              </div>
+                           </div>
+                           <span className="text-[10px] font-bold text-gray-400 italic">EcoSpark Verified</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-
-          {/* Content */}
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">🔴 Problem Statement</h2>
-              <p className="text-gray-600">{idea.problemStatement}</p>
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">✅ Proposed Solution</h2>
-              <p className="text-gray-600">{idea.solution}</p>
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">📝 Description</h2>
-              <p className="text-gray-600">{idea.description}</p>
-            </div>
-          </div>
         </div>
-
-        {/* Voting */}
-        <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Vote on this Idea</h2>
-          <div className="flex gap-4 items-center">
-            <button
-              onClick={() => handleVote(1)}
-              disabled={voting}
-              className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition ${
-                userVote?.value === 1
-                  ? 'bg-green-700 text-white'
-                  : 'bg-green-100 text-green-700 hover:bg-green-700 hover:text-white'
-              }`}
-            >
-              👍 Upvote ({upvotes})
-            </button>
-            <button
-              onClick={() => handleVote(-1)}
-              disabled={voting}
-              className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition ${
-                userVote?.value === -1
-                  ? 'bg-red-600 text-white'
-                  : 'bg-red-100 text-red-600 hover:bg-red-600 hover:text-white'
-              }`}
-            >
-              👎 Downvote ({downvotes})
-            </button>
-            {!user && (
-              <p className="text-sm text-gray-500">
-                <Link href="/login" className="text-green-700 hover:underline">Login</Link> to vote
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Admin Actions */}
-        {user?.role === 'ADMIN' && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">⚙️ Admin Actions</h2>
-            <div className="flex gap-4 flex-wrap">
-              <button
-                onClick={() => handleAdminAction('APPROVED')}
-                className="bg-green-700 text-white px-6 py-2 rounded-full hover:bg-green-800 transition"
-              >
-                ✅ Approve
-              </button>
-              <button
-                onClick={() => {
-                  const feedback = prompt('Enter rejection reason:');
-                  if (feedback) handleAdminAction('REJECTED', feedback);
-                }}
-                className="bg-red-600 text-white px-6 py-2 rounded-full hover:bg-red-700 transition"
-              >
-                ❌ Reject
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Rejection Feedback */}
-        {idea.status === 'REJECTED' && idea.feedbackNote && user?.id === idea.authorId && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
-            <h2 className="text-lg font-bold text-red-700 mb-2">❌ Rejection Feedback</h2>
-            <p className="text-red-600">{idea.feedbackNote}</p>
-          </div>
-        )}
       </div>
     </div>
   );
