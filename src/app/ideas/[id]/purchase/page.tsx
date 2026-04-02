@@ -1,198 +1,158 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import Link from 'next/link';
 import api from '@/lib/axios';
+import IdeaSkeleton from '@/components/IdeaSkeleton'; 
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string);
-
-const cardStyle = {
-  style: {
-    base: {
-      fontSize: '16px',
-      color: '#1f2937',
-      fontFamily: 'sans-serif',
-      '::placeholder': { color: '#9ca3af' },
-    },
-    invalid: { color: '#ef4444' },
-  },
-};
-
-function CheckoutForm({ idea }: { idea: any }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-    setLoading(true);
-    setError('');
-    try {
-      const { data } = await api.post(`/ideas/${idea.id}/payment-intent`);
-      const clientSecret = data.clientSecret;
-      const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardNumberElement)!,
-        },
-      });
-      if (result.error) {
-        setError(result.error.message || 'Payment failed');
-      } else if (result.paymentIntent.status === 'succeeded') {
-        await api.post(`/ideas/${idea.id}/confirm-payment`, {
-          paymentIntentId: result.paymentIntent.id,
-        });
-        setSuccess(true);
-        setTimeout(() => router.push(`/ideas/${idea.id}`), 2000);
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Payment failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (success) {
-    return (
-      <div className="text-center py-10">
-        <div className="text-6xl mb-4">🎉</div>
-        <h2 className="text-2xl font-bold text-green-700">Payment Successful!</h2>
-        <p className="text-gray-500 mt-2">Redirecting to idea...</p>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-
-        {/* Card Number */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            💳 Card Number
-          </label>
-          <div className="border-2 border-gray-200 rounded-xl p-3 bg-white focus-within:border-green-500 transition">
-            <CardNumberElement options={cardStyle} />
-          </div>
-        </div>
-
-        {/* Expiry and CVC */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              📅 MM / YY
-            </label>
-            <div className="border-2 border-gray-200 rounded-xl p-3 bg-white focus-within:border-green-500 transition">
-              <CardExpiryElement options={cardStyle} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              🔒 CVC
-            </label>
-            <div className="border-2 border-gray-200 rounded-xl p-3 bg-white focus-within:border-green-500 transition">
-              <CardCvcElement options={cardStyle} />
-            </div>
-          </div>
-        </div>
-
-        {/* Test card info */}
-        <div className="grid grid-cols-2 gap-3 text-xs text-gray-500 bg-gray-50 p-3 rounded-xl">
-          <div className="flex items-center gap-2">
-            <span className="text-green-600">💳</span>
-            <span>Card: <strong>4242 4242 4242 4242</strong></span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-green-600">📅</span>
-            <span>Expiry: <strong>12/28</strong></span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-green-600">🔒</span>
-            <span>CVC: <strong>123</strong></span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-green-600">✅</span>
-            <span>Test Mode</span>
-          </div>
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-          ❌ {error}
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={!stripe || loading}
-        className="w-full bg-green-700 text-white py-3 rounded-xl font-bold hover:bg-green-800 disabled:opacity-50 transition"
-      >
-        {loading ? '⏳ Processing...' : `💰 Pay $${idea.price}`}
-      </button>
-    </form>
-  );
-}
-
-export default function PurchasePage() {
-  const { id } = useParams();
-  const router = useRouter();
-  const [idea, setIdea] = useState<any>(null);
+export default function IdeasPage() {
+  const [ideas, setIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const [type, setType] = useState('');
+  const [sort, setSort] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    fetchIdea();
-  }, []);
+    fetchIdeas();
+  }, [page, category, type, sort]);
 
-  const fetchIdea = async () => {
+  const fetchIdeas = async () => {
+    setLoading(true);
     try {
-      const res = await api.get(`/ideas/${id}/basic`);
-      setIdea(res.data);
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (category) params.append('category', category);
+      if (type) params.append('type', type);
+      if (sort) params.append('sort', sort);
+      params.append('page', page.toString());
+      const res = await api.get(`/ideas?${params.toString()}`);
+      setIdeas(res.data.ideas || []);
+      setTotalPages(res.data.pagination?.totalPages || 1);
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 500);
     }
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
-    </div>
-  );
-
-  if (!idea) return (
-    <div className="text-center py-20">
-      <p className="text-gray-500">Idea not found.</p>
-    </div>
-  );
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    fetchIdeas();
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-6">
-      <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h1 className="text-2xl font-extrabold text-gray-800 mb-2">
-            💳 Purchase Idea
-          </h1>
-          <p className="text-gray-500 mb-6">Get access to this premium idea</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors">
+      {/* Header */}
+      <section className="bg-gradient-to-br from-green-800 to-emerald-600 dark:from-green-900 dark:to-slate-900 text-white py-16 px-6 text-center">
+        <h1 className="text-4xl font-extrabold mb-4">🌱 All Sustainability Ideas</h1>
+        <p className="text-green-100 text-lg mb-8">Browse, vote and get inspired by community ideas</p>
+        <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto">
+          <input
+            type="text"
+            placeholder="Search ideas..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 p-4 rounded-xl text-gray-800 focus:outline-none shadow dark:bg-slate-800 dark:text-white dark:border-slate-700"
+          />
+          <button type="submit" className="bg-white text-green-700 px-8 py-4 rounded-xl font-bold hover:bg-green-100 transition dark:bg-green-600 dark:text-white dark:hover:bg-green-700">
+            Search
+          </button>
+        </form>
+      </section>
 
-          <div className="bg-green-50 border border-green-200 p-4 rounded-xl mb-6">
-            <h2 className="font-bold text-gray-800">{idea.title}</h2>
-            <p className="text-green-700 font-bold text-xl mt-1">${idea.price}</p>
+      <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8">
+        {/* Sidebar */}
+        <div className="hidden lg:block w-64 flex-shrink-0">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-6 sticky top-24 border dark:border-slate-800">
+            <h3 className="font-bold text-gray-800 dark:text-white mb-4">🔍 Filters</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1 block">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+                  className="w-full border dark:border-slate-700 p-2 rounded-lg text-sm focus:outline-none focus:border-green-500 dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="">All Categories</option>
+                  <option value="Energy">⚡ Energy</option>
+                  <option value="Waste">♻️ Waste</option>
+                  <option value="Transportation">🚗 Transportation</option>
+                  <option value="Water">💧 Water</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1 block">Type</label>
+                <select
+                  value={type}
+                  onChange={(e) => { setType(e.target.value); setPage(1); }}
+                  className="w-full border dark:border-slate-700 p-2 rounded-lg text-sm focus:outline-none focus:border-green-500 dark:bg-slate-800 dark:text-white"
+                >
+                  <option value="">Free & Paid</option>
+                  <option value="FREE">🆓 Free Only</option>
+                  <option value="PAID">💰 Paid Only</option>
+                </select>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <Elements stripe={stripePromise}>
-            <CheckoutForm idea={idea} />
-          </Elements>
+        {/* Main Content */}
+        <div className="flex-1">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((n) => <IdeaSkeleton key={n} />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {ideas.map((idea) => (
+                <div key={idea.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow hover:shadow-xl transition-all duration-300 overflow-hidden border dark:border-slate-800 flex flex-col">
+                  {/* Image */}
+                  <div className="bg-gray-100 dark:bg-slate-800 h-48 overflow-hidden relative">
+                    {idea.images?.[0] ? (
+                      <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-6xl opacity-40">🌱</div>
+                    )}
+                  </div>
+
+                  <div className="p-5 flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-bold text-lg text-gray-800 dark:text-white line-clamp-1">{idea.title}</h3>
+                      {idea.type === 'PAID' && <span className="text-emerald-600 font-bold text-sm ml-2">৳{idea.price}</span>}
+                    </div>
+                    
+                    <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 mb-4">{idea.description}</p>
+                    
+                    <div className="mt-auto pt-4 border-t dark:border-slate-800">
+                      <div className="flex gap-2">
+                        {/* Details Link */}
+                        <Link
+                          href={`/ideas/${idea.id}`}
+                          className="flex-1 text-center bg-green-700 hover:bg-green-800 text-white py-2 rounded-xl text-xs font-bold transition-all"
+                        >
+                          View Details
+                        </Link>
+
+                        {/* Buy Now Link - এটি সরাসরি আপনার PurchasePage এ নিয়ে যাবে */}
+                        {idea.type === 'PAID' && (
+                          <Link
+                            href={`/purchase/${idea.id}`}
+                            className="flex-1 text-center bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-md"
+                          >
+                            Buy Now
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
