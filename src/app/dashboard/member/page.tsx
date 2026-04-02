@@ -9,6 +9,11 @@ export default function MemberDashboard() {
   const [ideas, setIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  
+  // ইমেজ আপলোডের স্টেট
+  const [uploading, setUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState(""); 
+
   const [form, setForm] = useState({
     title: '',
     problemStatement: '',
@@ -49,15 +54,43 @@ export default function MemberDashboard() {
     }
   };
 
+  // --- ক্লাউডিনারি ইমেজ আপলোড ফাংশন ---
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "ecospark_upload"); // আপনার তৈরি করা প্রিসেট
+
+    try {
+      const res = await fetch(
+        "https://api.cloudinary.com/v1_1/da55p8fpm/image/upload", // আপনার ক্লাউড নাম
+        { method: "POST", body: formData }
+      );
+      const data = await res.json();
+      if (data.secure_url) {
+        setImageUrl(data.secure_url);
+      }
+    } catch (err) {
+      alert("ছবি আপলোড করতে সমস্যা হয়েছে!");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await api.post('/ideas', {
         ...form,
+        images: imageUrl ? [imageUrl] : [], 
         price: form.type === 'PAID' ? Number(form.price) : null,
       });
       setShowForm(false);
       setForm({ title: '', problemStatement: '', solution: '', description: '', categoryId: '', type: 'FREE', price: '' });
+      setImageUrl(""); 
       fetchMyIdeas();
     } catch (error) {
       console.error(error);
@@ -94,7 +127,6 @@ export default function MemberDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-gradient-to-r from-green-700 to-emerald-600 text-white py-10 px-6">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-extrabold">👋 Welcome, {user?.name}!</h1>
@@ -103,7 +135,6 @@ export default function MemberDashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-10">
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Total Ideas', count: ideas.length, icon: '💡' },
@@ -119,7 +150,6 @@ export default function MemberDashboard() {
           ))}
         </div>
 
-        {/* Create Idea Button */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">My Ideas</h2>
           <button
@@ -130,9 +160,8 @@ export default function MemberDashboard() {
           </button>
         </div>
 
-        {/* Create Idea Form */}
         {showForm && (
-          <div className="bg-white rounded-2xl shadow p-6 mb-8">
+          <div className="bg-white rounded-2xl shadow p-6 mb-8 border-2 border-green-100">
             <h3 className="text-xl font-bold text-gray-800 mb-4">Create New Idea</h3>
             <form onSubmit={handleSubmitForm} className="space-y-4">
               <input
@@ -143,6 +172,33 @@ export default function MemberDashboard() {
                 className="w-full border p-3 rounded-xl focus:outline-none focus:border-green-500"
                 required
               />
+
+              {/* ইমেজ আপলোড অংশ */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-700">Idea Image</label>
+                <div className="flex flex-col gap-2">
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleImageUpload} 
+                    className="w-full border p-2 rounded-xl text-sm bg-gray-50 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  />
+                  {uploading && <p className="text-xs text-green-600 animate-pulse">ছবি আপলোড হচ্ছে...</p>}
+                  {imageUrl && (
+                    <div className="relative inline-block mt-2">
+                      <img src={imageUrl} alt="preview" className="h-28 w-40 object-cover rounded-xl border-2 border-green-200" />
+                      <button 
+                        type="button" 
+                        onClick={() => setImageUrl("")} 
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg hover:bg-red-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <textarea
                 placeholder="Problem Statement"
                 value={form.problemStatement}
@@ -197,15 +253,15 @@ export default function MemberDashboard() {
               )}
               <button
                 type="submit"
-                className="w-full bg-green-700 text-white py-3 rounded-xl font-bold hover:bg-green-800 transition"
+                disabled={uploading}
+                className={`w-full py-3 rounded-xl font-bold transition ${uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-700 text-white hover:bg-green-800'}`}
               >
-                Save as Draft
+                {uploading ? 'ইমেজ আপলোড হচ্ছে...' : 'Save as Draft'}
               </button>
             </form>
           </div>
         )}
 
-        {/* Ideas List */}
         {loading ? (
           <div className="flex justify-center h-40">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
@@ -219,20 +275,27 @@ export default function MemberDashboard() {
           <div className="space-y-4">
             {ideas.map((idea) => (
               <div key={idea.id} className="bg-white rounded-2xl shadow p-6 flex justify-between items-center">
-                <div>
-                  <div className="flex gap-2 mb-2">
-                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusColor(idea.status)}`}>
-                      {idea.status}
-                    </span>
-                    <span className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700">
-                      {idea.category?.name}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-gray-800">{idea.title}</h3>
-                  <p className="text-gray-500 text-sm mt-1 line-clamp-1">{idea.description}</p>
-                  {idea.status === 'REJECTED' && idea.feedbackNote && (
-                    <p className="text-red-500 text-sm mt-1">❌ Feedback: {idea.feedbackNote}</p>
+                <div className="flex items-center gap-4">
+                  {idea.images && idea.images[0] ? (
+                    <img src={idea.images[0]} alt="idea" className="h-16 w-16 object-cover rounded-lg border shadow-sm" />
+                  ) : (
+                    <div className="h-16 w-16 bg-green-50 flex items-center justify-center rounded-lg text-2xl border border-green-100">🌱</div>
                   )}
+                  <div>
+                    <div className="flex gap-2 mb-2">
+                      <span className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusColor(idea.status)}`}>
+                        {idea.status}
+                      </span>
+                      <span className="text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-700">
+                        {idea.category?.name}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-gray-800">{idea.title}</h3>
+                    <p className="text-gray-500 text-sm mt-1 line-clamp-1">{idea.description}</p>
+                    {idea.status === 'REJECTED' && idea.feedbackNote && (
+                      <p className="text-red-500 text-sm mt-1">❌ Feedback: {idea.feedbackNote}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-2 ml-4">
                   <Link

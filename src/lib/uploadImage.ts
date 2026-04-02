@@ -1,0 +1,16 @@
+export const uploadImage = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'your_preset_name'); // আপনার প্রিসেট নাম দিন
+
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/your_cloud_name/image/upload`, // আপনার ক্লাউড নাম দিন
+    {
+      method: 'POST',
+      body: formData,
+    }
+  );
+
+  const data = await res.json();
+  return data.secure_url; // এটি আপনাকে ছবির লিঙ্কটি দিবে
+};

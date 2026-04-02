@@ -2,19 +2,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
-import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       if (isLogin) {
@@ -24,6 +22,7 @@ export default function LoginPage() {
         });
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
+        toast.success('Login successful! 🎉');
         router.push('/');
       } else {
         await api.post('/auth/register', {
@@ -31,11 +30,11 @@ export default function LoginPage() {
           email: form.email,
           password: form.password,
         });
+        toast.success('Registration successful! Please login. ✅');
         setIsLogin(true);
-        setError('Registration successful! Please login.');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Something went wrong');
+      toast.error(err.response?.data?.message || 'Something went wrong ❌');
     } finally {
       setLoading(false);
     }
@@ -47,12 +46,6 @@ export default function LoginPage() {
         <h2 className="text-2xl font-bold text-green-700 mb-6 text-center">
           {isLogin ? 'Login to EcoSpark' : 'Join EcoSpark Hub'}
         </h2>
-
-        {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
@@ -103,4 +96,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
 

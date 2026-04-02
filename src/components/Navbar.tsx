@@ -2,15 +2,18 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTheme } from "next-themes"; // আপনার জন্য অ্যাড করা
+import { Sun, Moon } from "lucide-react"; // আপনার জন্য অ্যাড করা
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme(); // ডার্ক মোড স্টেট
   const router = useRouter();
   const pathname = usePathname();
 
-useEffect(() => {
+  useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem('user');
     if (stored) setUser(JSON.parse(stored));
@@ -35,7 +38,7 @@ useEffect(() => {
       </div>
 
       {/* Sticky Navbar */}
-      <nav className="sticky top-0 z-50 bg-green-700 text-white shadow-lg">
+      <nav className="sticky top-0 z-50 bg-green-700 dark:bg-gray-900 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold flex items-center gap-2">
             🌱 <span>EcoSpark Hub</span>
@@ -47,6 +50,14 @@ useEffect(() => {
             <Link href="/ideas" className="hover:text-green-200 transition">Ideas</Link>
             <Link href="/about" className="hover:text-green-200 transition">About Us</Link>
 
+            {/* Dark Mode Toggle - আপনার মেনুর সাথে অ্যাড করা */}
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-full bg-green-800 dark:bg-gray-800 hover:bg-green-600 transition-all"
+            >
+              {theme === "dark" ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
+            </button>
+
             {user ? (
               <>
                 <Link
@@ -55,7 +66,12 @@ useEffect(() => {
                 >
                   Dashboard
                 </Link>
-                <span className="text-green-200 text-sm">Hi, {user.name} 👋</span>
+                
+                {/* আপনার নামের অংশটুকু এখন প্রোফাইল লিঙ্ক */}
+                <Link href="/profile" className="text-green-200 text-sm hover:underline transition">
+                  Hi, {user.name} 👋
+                </Link>
+
                 <button
                   onClick={handleLogout}
                   className="bg-white text-green-700 px-4 py-1.5 rounded-full font-semibold hover:bg-green-100 transition text-sm"
@@ -74,22 +90,30 @@ useEffect(() => {
           </div>
 
           {/* Mobile Menu Button */}
-          <button
-            className="md:hidden text-white text-2xl"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            {menuOpen ? '✕' : '☰'}
-          </button>
+          <div className="md:hidden flex items-center gap-4">
+             {/* Mobile Dark Mode Toggle */}
+            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+              {theme === "dark" ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} />}
+            </button>
+            <button
+              className="text-white text-2xl"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              {menuOpen ? '✕' : '☰'}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="md:hidden bg-green-800 px-6 py-4 flex flex-col gap-4">
+          <div className="md:hidden bg-green-800 dark:bg-gray-900 px-6 py-4 flex flex-col gap-4">
             <Link href="/" onClick={() => setMenuOpen(false)}>Home</Link>
             <Link href="/ideas" onClick={() => setMenuOpen(false)}>Ideas</Link>
             <Link href="/about" onClick={() => setMenuOpen(false)}>About Us</Link>
             {user ? (
               <>
+                {/* মোবাইলেও প্রোফাইল লিঙ্ক যোগ করা হয়েছে */}
+                <Link href="/profile" onClick={() => setMenuOpen(false)}>My Profile ({user.name})</Link>
                 <Link href={user.role === 'ADMIN' ? '/dashboard/admin' : '/dashboard/member'} onClick={() => setMenuOpen(false)}>Dashboard</Link>
                 <button onClick={handleLogout} className="text-left text-red-300">Logout</button>
               </>
@@ -102,3 +126,6 @@ useEffect(() => {
     </>
   );
 }
+
+
+
