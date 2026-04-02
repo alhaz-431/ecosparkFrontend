@@ -45,7 +45,6 @@ export default function IdeasPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors">
-      {/* Header */}
       <section className="bg-gradient-to-br from-green-800 to-emerald-600 dark:from-green-900 dark:to-slate-900 text-white py-16 px-6 text-center">
         <h1 className="text-4xl font-extrabold mb-4">🌱 All Sustainability Ideas</h1>
         <p className="text-green-100 text-lg mb-8">Browse, vote and get inspired by community ideas</p>
@@ -64,7 +63,6 @@ export default function IdeasPage() {
       </section>
 
       <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8">
-        {/* Sidebar */}
         <div className="hidden lg:block w-64 flex-shrink-0">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-6 sticky top-24 border dark:border-slate-800">
             <h3 className="font-bold text-gray-800 dark:text-white mb-4">🔍 Filters</h3>
@@ -83,7 +81,6 @@ export default function IdeasPage() {
                   <option value="Water">💧 Water</option>
                 </select>
               </div>
-
               <div>
                 <label className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1 block">Type</label>
                 <select
@@ -100,7 +97,6 @@ export default function IdeasPage() {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="flex-1">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -110,7 +106,6 @@ export default function IdeasPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {ideas.map((idea) => (
                 <div key={idea.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow hover:shadow-xl transition-all duration-300 overflow-hidden border dark:border-slate-800 flex flex-col">
-                  {/* Image */}
                   <div className="bg-gray-100 dark:bg-slate-800 h-48 overflow-hidden relative">
                     {idea.images?.[0] ? (
                       <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover" />
@@ -124,7 +119,6 @@ export default function IdeasPage() {
                       <h3 className="font-bold text-lg text-gray-800 dark:text-white line-clamp-1">{idea.title}</h3>
                       {idea.type === 'PAID' && <span className="text-emerald-600 font-bold text-sm ml-2">৳{idea.price}</span>}
                     </div>
-                    
                     <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 mb-4">{idea.description}</p>
                     
                     <div className="mt-auto pt-4 border-t dark:border-slate-800">
@@ -137,11 +131,11 @@ export default function IdeasPage() {
                           View Details
                         </Link>
 
-                        {/* Buy Now Link - এটি সরাসরি আপনার PurchasePage এ নিয়ে যাবে */}
+                        {/* Buy Now Link - এটিই 404 দিচ্ছিল */}
                         {idea.type === 'PAID' && (
                           <Link
-                            href={`/purchase/${idea.id}`}
-                            className="flex-1 text-center bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-md"
+                            href={`/purchase/${idea.id}`} 
+                            className="flex-1 text-center bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold transition-all"
                           >
                             Buy Now
                           </Link>
