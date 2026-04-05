@@ -51,21 +51,20 @@ export default function IdeaDetailsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
         
         {/* বাম কলাম: ছবির সেকশন */}
-<div className="rounded-3xl overflow-hidden bg-gray-200 dark:bg-slate-800 shadow-lg border dark:border-slate-700 min-h-[300px] flex items-center justify-center">
-  {idea.images && idea.images.length > 0 ? (
-    <img 
-      src={idea.images[0]} 
-      className="w-full h-auto max-h-[500px] object-cover" 
-      alt={idea.title}
-      onError={(e) => {
-        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/600x400?text=No+Image+Available';
-      }}
-    />
-  ) : (
-    <div className="text-gray-400 font-bold">No Image Available</div>
-  )}
-</div>
 
+{/* ছবির সেকশন */}
+<div className="rounded-3xl overflow-hidden bg-gray-100 dark:bg-slate-900 mb-10 shadow-md border dark:border-slate-800 flex items-center justify-center min-h-[300px]">
+  <img 
+    src={idea.images && idea.images.length > 0 
+      ? idea.images[0] 
+      : 'https://via.placeholder.com/800x500?text=EcoSpark+Idea'} // ছবি না থাকলে এটি দেখাবে
+    className="w-full max-h-[500px] object-contain mx-auto"
+    alt={idea.title} 
+    onError={(e) => {
+      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x500?text=Image+Not+Found';
+    }}
+  />
+</div>
         {/* ডান কলাম: বর্ণনা এবং ভোট */}
         <div className="space-y-10">
           <div>
