@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
+import { CheckCircle, XCircle, Clock, Lightbulb } from 'lucide-react'; // lucide-react ব্যবহার করলে আইকনগুলো সুন্দর দেখাবে
 
 export default function AdminDashboard() {
   const [ideas, setIdeas] = useState<any[]>([]);
@@ -12,7 +13,6 @@ export default function AdminDashboard() {
 
   const fetchIdeas = async () => {
     try {
-      // সব আইডিয়া নিয়ে আসার জন্য (স্ট্যাটাস ফিল্টার ছাড়া)
       const res = await api.get('/ideas/admin/all'); 
       setIdeas(res.data.ideas || res.data);
     } catch (error) {
@@ -25,75 +25,101 @@ export default function AdminDashboard() {
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
       await api.patch(`/ideas/${id}/status`, { status: newStatus });
-      alert(`Idea ${newStatus} successfully!`);
-      fetchIdeas(); // লিস্ট রিফ্রেশ করার জন্য
+      fetchIdeas(); 
     } catch (error) {
       alert("Failed to update status");
     }
   };
 
-  if (loading) return <div className="p-20 text-center font-bold">Loading Admin Panel...</div>;
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center bg-gray-50 dark:bg-slate-950">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+    </div>
+  );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto bg-white dark:bg-slate-950 min-h-screen">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-black text-gray-900 dark:text-white">Admin Management</h1>
-        <div className="bg-emerald-100 text-emerald-700 px-4 py-1 rounded-full text-sm font-bold">
-          Total Ideas: {ideas.length}
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 p-6 lg:p-10">
+      {/* Header with Gradient Background */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-500 p-8 mb-10 shadow-lg shadow-emerald-200 dark:shadow-none">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-white mb-2">Admin Control Center</h1>
+            <p className="text-emerald-50 font-medium">Manage and approve the future of sustainability.</p>
+          </div>
+          <div className="flex gap-4">
+             <div className="bg-white/20 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/30 text-white text-center">
+                <p className="text-xs uppercase font-black opacity-80">Total Ideas</p>
+                <p className="text-2xl font-black">{ideas.length}</p>
+             </div>
+          </div>
         </div>
+        {/* Background Decorative Circle */}
+        <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-50 dark:bg-slate-900 text-gray-600 dark:text-gray-300 uppercase text-xs font-black tracking-wider">
-              <th className="px-6 py-4">Idea Title</th>
-              <th className="px-6 py-4">Category</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-            {ideas.map((idea) => (
-              <tr key={idea.id} className="hover:bg-gray-50 dark:hover:bg-slate-900/50 transition">
-                <td className="px-6 py-4">
-                  <div className="font-bold text-gray-900 dark:text-white">{idea.title}</div>
-                  <div className="text-xs text-gray-500 truncate max-w-[200px]">{idea.description}</div>
-                </td>
-                <td className="px-6 py-4">
-                   <span className="text-xs font-semibold bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded">
-                     {idea.category?.name || 'N/A'}
-                   </span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`text-[10px] font-black px-2 py-1 rounded-full uppercase ${
-                    idea.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 
-                    idea.status === 'UNDER_REVIEW' ? 'bg-yellow-100 text-yellow-700' : 
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {idea.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  {idea.status !== 'APPROVED' && (
-                    <button 
-                      onClick={() => handleStatusUpdate(idea.id, 'APPROVED')}
-                      className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition"
-                    >
-                      Approve
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => handleStatusUpdate(idea.id, 'REJECTED')}
-                    className="text-red-500 hover:bg-red-50 text-xs font-bold py-1.5 px-3 rounded-lg transition border border-transparent hover:border-red-100"
-                  >
-                    Reject
-                  </button>
-                </td>
+      {/* Table Section */}
+      <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-slate-800 overflow-hidden">
+        <div className="p-6 border-b border-gray-50 dark:border-slate-800 flex items-center justify-between">
+           <h3 className="font-black text-gray-800 dark:text-white flex items-center gap-2 text-lg">
+             <Lightbulb className="text-emerald-500" /> Recent Submissions
+           </h3>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50/50 dark:bg-slate-800/50 text-gray-400 text-[11px] font-black uppercase tracking-widest">
+                <th className="px-8 py-5 text-left">Idea Details</th>
+                <th className="px-8 py-5 text-left">Category</th>
+                <th className="px-8 py-5 text-center">Current Status</th>
+                <th className="px-8 py-5 text-right">Decision</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
+              {ideas.map((idea) => (
+                <tr key={idea.id} className="hover:bg-gray-50/80 dark:hover:bg-slate-800/30 transition-all duration-300">
+                  <td className="px-8 py-6">
+                    <p className="font-bold text-gray-900 dark:text-white text-base mb-1">{idea.title}</p>
+                    <p className="text-xs text-gray-500 line-clamp-1">{idea.description}</p>
+                  </td>
+                  <td className="px-8 py-6">
+                    <span className="inline-block bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-black px-3 py-1 rounded-lg uppercase">
+                      {idea.category?.name || 'General'}
+                    </span>
+                  </td>
+                  <td className="px-8 py-6 text-center">
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tight shadow-sm ${
+                      idea.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
+                      idea.status === 'UNDER_REVIEW' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 
+                      'bg-rose-50 text-rose-600 border border-rose-100'
+                    }`}>
+                       {idea.status === 'APPROVED' ? <CheckCircle size={12}/> : <Clock size={12}/>}
+                       {idea.status}
+                    </div>
+                  </td>
+                  <td className="px-8 py-6 text-right">
+                    <div className="flex justify-end gap-3">
+                      {idea.status !== 'APPROVED' && (
+                        <button 
+                          onClick={() => handleStatusUpdate(idea.id, 'APPROVED')}
+                          className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black rounded-xl transition shadow-lg shadow-emerald-200 dark:shadow-none hover:-translate-y-0.5 active:translate-y-0"
+                        >
+                          Approve
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => handleStatusUpdate(idea.id, 'REJECTED')}
+                        className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-900/30 text-rose-600 text-xs font-black rounded-xl hover:bg-rose-50 transition"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
