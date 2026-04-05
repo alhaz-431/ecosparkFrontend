@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 
 export default function IdeaDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const [idea, setIdea] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -23,72 +24,106 @@ export default function IdeaDetailsPage() {
     }
   };
 
-  // ভোট দেওয়ার ফাংশন
   const handleVote = async (value: number) => {
     try {
       await api.post(`/votes/${params.id}/vote`, { value });
-      fetchIdeaDetails(); // ভোট দেওয়ার পর নতুন কাউন্ট দেখার জন্য রিফ্রেশ
+      fetchIdeaDetails(); 
     } catch (error: any) {
       alert(error.response?.data?.message || "ভোট দিতে লগইন করুন!");
     }
   };
 
-  if (loading) return <div className="p-20 text-center">Loading details...</div>;
-  if (!idea) return <div className="p-20 text-center">Idea not found!</div>;
+  if (loading) return <div className="p-20 text-center text-gray-500">Loading details...</div>;
+  if (!idea) return <div className="p-20 text-center text-red-500">Idea not found!</div>;
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-6">
-      {/* ছবির সেকশন */}
-      <div className="rounded-3xl overflow-hidden h-96 bg-gray-100 mb-8">
-        <img 
-          src={idea.images?.[0] || '/images/default-idea.jpg'} 
-          className="w-full h-full object-cover" 
-          alt={idea.title} 
-        />
-      </div>
+    <div className="max-w-7xl mx-auto py-10 px-6">
+      {/* ব্যাক বাটন */}
+      <button 
+        onClick={() => router.back()}
+        className="mb-8 flex items-center gap-2.5 text-gray-600 hover:text-green-700 font-bold transition group"
+      >
+        <span className="text-xl group-hover:-translate-x-1.5 transition-transform">←</span> 
+        Back to Ideas
+      </button>
 
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{idea.title}</h1>
-          <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold uppercase">
-            {idea.category?.name}
-          </span>
-        </div>
-
-        {/* ভোট দেওয়ার বাটন সেকশন */}
-        <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border">
-          <button 
-            onClick={() => handleVote(1)}
-            className="flex flex-col items-center gap-1 hover:scale-110 transition"
-          >
-            <span className="text-3xl">👍</span>
-            <span className="font-bold text-green-600">
-              {idea.votes?.filter((v: any) => v.value === 1).length || 0}
-            </span>
-          </button>
-
-          <div className="w-[1px] h-10 bg-gray-200"></div>
-
-          <button 
-            onClick={() => handleVote(-1)}
-            className="flex flex-col items-center gap-1 hover:scale-110 transition"
-          >
-            <span className="text-3xl">👎</span>
-            <span className="font-bold text-red-500">
-              {idea.votes?.filter((v: any) => v.value === -1).length || 0}
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* আইডিয়ার বর্ণনা */}
-      <div className="prose prose-lg dark:prose-invert max-w-none">
-        <h3 className="text-xl font-bold mb-2">Description:</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">{idea.description}</p>
+      {/* ২-কলাম লেআউট: বামে ছবি, ডানে বর্ণনা ও ভোট */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
         
-        {/* অ্যাসাইনমেন্ট রিকোয়ারমেন্ট অনুযায়ী আরও ডিটেইলস */}
-        <h3 className="text-xl font-bold mb-2">Problem Statement:</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-6">{idea.problemStatement || "No problem statement provided."}</p>
+        {/* বাম কলাম: ছবির সেকশন (சைஸ் कंट्रोळ करा হয়েছে) */}
+        <div className="rounded-3xl overflow-hidden bg-gray-100 dark:bg-slate-900 shadow-lg border dark:border-slate-800">
+          <img 
+            src={idea.images?.[0] || '/images/default-idea.jpg'} 
+            className="w-full h-auto max-h-[600px] object-contain mx-auto" // object-contain যাতে ছবি না কাটে
+            alt={idea.title} 
+          />
+        </div>
+
+        {/* ডান কলাম: বর্ণনা এবং ভোট */}
+        <div className="space-y-10">
+          <div>
+            <span className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
+              {idea.category?.name}
+            </span>
+            <h1 className="text-5xl font-black text-gray-900 dark:text-white mt-5 mb-5 leading-tight">
+              {idea.title}
+            </h1>
+          </div>
+
+          {/* ভোট সেকশন (ডানপাশে বা নিচে থাকবে) */}
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl border dark:border-slate-800 text-center">
+            <h4 className="font-bold text-gray-500 uppercase text-xs tracking-widest mb-6">Community Vote</h4>
+            <div className="flex justify-around items-center">
+              <button 
+                onClick={() => handleVote(1)}
+                className="flex flex-col items-center gap-2.5 group"
+              >
+                <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-green-50 dark:bg-green-900/20 group-hover:scale-110 transition text-4xl shadow-md border dark:border-green-800/20">
+                  👍
+                </div>
+                <span className="font-black text-green-600 text-2xl">
+                  {idea.votes?.filter((v: any) => v.value === 1).length || 0}
+                </span>
+              </button>
+
+              <div className="w-[1px] h-14 bg-gray-100 dark:bg-slate-800"></div>
+
+              <button 
+                onClick={() => handleVote(-1)}
+                className="flex flex-col items-center gap-2.5 group"
+              >
+                <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-red-50 dark:bg-red-900/20 group-hover:scale-110 transition text-4xl shadow-md border dark:border-red-800/20">
+                  👎
+                </div>
+                <span className="font-black text-red-500 text-2xl">
+                  {idea.votes?.filter((v: any) => v.value === -1).length || 0}
+                </span>
+              </button>
+            </div>
+            <p className="mt-7 text-xs text-gray-400 font-medium">Click to cast your vote</p>
+          </div>
+
+          <div className="space-y-8 bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-lg">
+            <section>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-3.5 flex items-center gap-2">
+                📝 Description
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed italic font-medium">
+                "{idea.description}"
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-3.5 flex items-center gap-2">
+                🎯 Problem Statement
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                {idea.problemStatement || "No problem statement provided."}
+              </p>
+            </section>
+          </div>
+
+        </div>
       </div>
     </div>
   );
