@@ -142,7 +142,6 @@ export default function IdeasPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {ideas.map((idea) => (
                   <div key={idea.id} className="bg-white rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col border">
-                    {/* Image */}
                     <div className="relative h-48 bg-slate-200 overflow-hidden">
                       <img
                         src={idea.images?.[0] || '/images/default-idea.jpg'}
@@ -172,19 +171,21 @@ export default function IdeasPage() {
                           <span>👍 {idea.votes?.filter((v: any) => v.value === 1).length || 0}</span>
                           <span>👎 {idea.votes?.filter((v: any) => v.value === -1).length || 0}</span>
                         </div>
-                        {idea.type === 'PAID' ? (
-                          <Link
-                            href={`/ideas/${idea.id}/purchase`}
-                            className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
-                          >
-                            💰 Buy Now
-                          </Link>
-                        ) : (
+                        
+                        {/* আপডেট করা বাটন সেকশন */}
+                        {idea.type === 'FREE' || idea.isPurchased ? (
                           <Link
                             href={`/ideas/${idea.id}`}
                             className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
                           >
-                            View Idea →
+                            {idea.isPurchased ? '✅ View Details' : 'View Idea →'}
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/ideas/${idea.id}/purchase`}
+                            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+                          >
+                            💰 Buy Now
                           </Link>
                         )}
                       </div>
