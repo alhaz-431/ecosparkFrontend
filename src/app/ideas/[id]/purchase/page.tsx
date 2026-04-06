@@ -3,113 +3,166 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
-// Stripe Initialize
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
-export default function PurchasePage() {
-  const { id } = useParams();
+function CheckoutForm({ idea }: { idea: any }) {
+  const stripe = useStripe();
+  const elements = useElements();
   const router = useRouter();
-  const [idea, setIdea] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchIdea = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get(`/ideas/${id}`);
-        if (res.data) setIdea(res.data);
-      } catch (err: any) {
-        // এপিআই ফেইল করলে ডামি ডাটা (ভিডিওর জন্য নিরাপদ)
-        setIdea({ title: "Premium Sustainability Strategic Guide", price: 500, id: id });
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (id) fetchIdea();
-  }, [id]);
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!stripe || !elements) return;
 
-  const handlePayment = async () => {
-    if (!idea || !idea.price) return;
     setProcessing(true);
+    setError(null);
 
     try {
       // ১. ব্যাকএন্ড থেকে clientSecret আনা
-      const response = await api.post(`/ideas/${id}/payment-intent`, {
+      const { data } = await api.post(`/ideas/${idea.id}/payment-intent`, {
         price: idea.price 
       });
 
-      const { clientSecret } = response.data;
+      const clientSecret = data.clientSecret;
 
-      if (!clientSecret) {
-        alert("Server did not return clientSecret. Check Backend!");
-        return;
-      }
+      // ২. Stripe Card Element থেকে পেমেন্ট কনফার্ম করা
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) return;
 
-      const stripe = await stripePromise;
-      if (!stripe) return;
-
-      // ২. সরাসরি টেস্ট কার্ড দিয়ে পেমেন্ট কনফার্ম করা (ভিডিও ডেমোর জন্য)
-      // নোট: প্রডাকশনে এখানে Card Element থেকে ডাটা নিতে হয়
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: { token: 'tok_visa' }, // এটি টেস্ট মোডে সাকসেসফুল পেমেন্ট করবে
+          card: cardElement,
           billing_details: { name: 'Ariful Islam' },
         },
       });
 
       if (result.error) {
-        // যদি টোকেন কাজ না করে তবে ম্যানুয়ালি সাকসেস দেখানোর ব্যবস্থা (ভিডিওর জন্য)
-        console.error(result.error.message);
-        alert("Payment Logic Success! Client Secret Received: " + clientSecret.substring(0, 15) + "...");
+        setError(result.error.message || "Payment Failed");
       } else {
         if (result.paymentIntent.status === 'succeeded') {
           alert("Payment Successful! 🌱");
-          router.push('/dashboard');
+          router.push('/dashboard/member');
         }
       }
     } catch (err: any) {
-      alert("Backend Connected! Response: " + (err.response?.data?.message || "Success"));
+      setError("Backend connection error. Please try again.");
     } finally {
       setProcessing(false);
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+        <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Card Details</label>
+        <div className="py-2">
+          <CardElement 
+            options={{
+              style: {
+                base: {
+                  fontSize: '16px',
+                  color: '#1f2937',
+                  '::placeholder': { color: '#9ca3af' },
+                },
+              },
+            }} 
+          />
+        </div>
+      </div>
+
+      {error && <p className="text-red-500 text-xs font-medium">{error}</p>}
+
+      <button
+        type="submit"
+        disabled={!stripe || processing}
+        className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all ${
+          processing ? 'bg-gray-400' : 'bg-green-700 hover:bg-green-800 active:scale-95'
+        }`}
+      >
+        {processing ? 'Verifying Card...' : `Pay ৳${idea?.price}`}
+      </button>
+      
+      <p className="text-[10px] text-center text-gray-400">
+        🔒 Encrypted and Secured by Stripe
+      </p>
+    </form>
+  );
+}
+
+export default function PurchasePage() {
+  const { id } = useParams();
+  const [idea, setIdea] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchIdea = async () => {
+      try {
+        const res = await api.get(`/ideas/${id}`);
+        setIdea(res.data);
+      } catch (err) {
+        setIdea({ title: "Premium Sustainability Strategic Guide", price: 500, id: id });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchIdea();
+  }, [id]);
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-green-700">Loading Payment Gateway...</div>;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white rounded-[40px] shadow-2xl overflow-hidden border flex flex-col md:flex-row">
-        {/* বাম পাশ: গ্রিন সেকশন */}
-        <div className="md:w-1/2 bg-green-700 p-10 text-white">
-          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-8 text-2xl">🌱</div>
-          <h2 className="text-3xl font-extrabold mb-4">Secure <br />Experience.</h2>
-          <p className="opacity-80 text-sm">Unlock premium sustainability insights now.</p>
-        </div>
-
-        {/* ডান পাশ: পেমেন্ট ফর্ম */}
-        <div className="md:w-1/2 p-10 flex flex-col justify-center">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Checkout Summary</p>
-          <h3 className="text-xl font-bold text-gray-800 mb-8">{idea?.title}</h3>
-
-          <div className="space-y-4 mb-10 border-t border-dashed pt-6">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500 font-bold text-lg">Total Amount</span>
-              <span className="text-3xl font-black text-green-700">৳{idea?.price}</span>
+    <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center p-6">
+      <div className="max-w-4xl w-full bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row">
+        
+        {/* বাম পাশ: অর্ডার সামারি */}
+        <div className="md:w-5/12 bg-green-700 p-10 text-white flex flex-col justify-between">
+          <div>
+            <div className="inline-block p-3 bg-white/10 rounded-2xl mb-6">🌱</div>
+            <h2 className="text-2xl font-bold mb-2">Order Summary</h2>
+            <p className="text-green-100 text-sm mb-8 italic">"{idea?.title}"</p>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span className="text-sm opacity-70">Item Price</span>
+                <span>৳{idea?.price}</span>
+              </div>
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span className="text-sm opacity-70">Platform Fee</span>
+                <span>৳0.00</span>
+              </div>
+              <div className="flex justify-between pt-2">
+                <span className="font-bold">Total</span>
+                <span className="text-2xl font-bold">৳{idea?.price}</span>
+              </div>
             </div>
           </div>
-
-          <button
-            onClick={handlePayment}
-            disabled={processing}
-            className={`w-full py-5 rounded-2xl font-black text-white shadow-lg transition-all ${
-              processing ? 'bg-gray-400' : 'bg-green-700 hover:bg-green-800'
-            }`}
-          >
-            {processing ? 'Processing...' : 'Pay Securely Now'}
-          </button>
+          
+          <div className="mt-10">
+            <p className="text-[10px] opacity-50">By purchasing, you agree to our Terms of Sustainability.</p>
+          </div>
         </div>
+
+        {/* ডান পাশ: আসল পেমেন্ট ফর্ম */}
+        <div className="md:w-7/12 p-10">
+          <div className="mb-8">
+            <h3 className="text-xl font-bold text-gray-800">Payment Information</h3>
+            <p className="text-sm text-gray-500">Complete your purchase by providing your payment details.</p>
+          </div>
+
+          <Elements stripe={stripePromise}>
+            <CheckoutForm idea={idea} />
+          </Elements>
+
+          <div className="mt-8 flex items-center justify-center space-x-4 opacity-30 grayscale">
+             <img src="https://upload.wikimedia.org/wikipedia/commons/d/d6/Visa_2021.svg" className="h-4" alt="Visa" />
+             <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-6" alt="Mastercard" />
+          </div>
+        </div>
+
       </div>
     </div>
   );
