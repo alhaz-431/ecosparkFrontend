@@ -22,8 +22,9 @@ function CheckoutForm({ idea }: { idea: any }) {
     setError(null);
 
     try {
-      // ১. ব্যাকএন্ড থেকে clientSecret আনা
-      const { data } = await api.post(`/ideas/${idea.id}/payment-intent`);
+      // ১. পেমেন্ট ইনটেন্ট তৈরি (ব্যাকএন্ড রাউট অনুযায়ী চেক করুন)
+      // যদি আপনার পেমেন্ট রাউট /api/payments এ থাকে তবে সেটি দিন
+      const { data } = await api.post(`/payments/create-payment-intent/${idea.id}`);
       const clientSecret = data.clientSecret;
 
       if (!clientSecret) {
@@ -45,9 +46,10 @@ function CheckoutForm({ idea }: { idea: any }) {
         setError(result.error.message || "Payment Failed");
       } else {
         if (result.paymentIntent.status === 'succeeded') {
-          // ৩. ব্যাকএন্ডে পেমেন্ট কনফার্ম করা যাতে ডাটাবেসে সেভ হয়
-          await api.post(`/ideas/${idea.id}/confirm-payment`, {
-            paymentIntentId: result.paymentIntent.id
+          // ৩. পেমেন্ট কনফার্ম করা
+          await api.post(`/payments/confirm-payment`, {
+            paymentIntentId: result.paymentIntent.id,
+            ideaId: idea.id
           });
           
           alert("Payment Successful! 🌱");
@@ -110,7 +112,8 @@ export default function PurchasePage() {
     const fetchIdea = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/ideas/${id}`);
+        // এখানে /basic যোগ করা হয়েছে যাতে 'Purchase required' এরর না আসে
+        const res = await api.get(`/ideas/${id}/basic`);
         if (res.data) {
           setIdea(res.data);
         }
@@ -132,7 +135,7 @@ export default function PurchasePage() {
     <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center p-6">
       <div className="max-w-4xl w-full bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row">
         
-        {/* বাম পাশ: অর্ডার সামারি */}
+        {/* অর্ডার সামারি */}
         <div className="md:w-5/12 bg-green-700 p-10 text-white flex flex-col justify-between">
           <div>
             <div className="inline-block p-3 bg-white/10 rounded-2xl mb-6 text-xl">🌱</div>
@@ -160,7 +163,7 @@ export default function PurchasePage() {
           </div>
         </div>
 
-        {/* ডান পাশ: আসল পেমেন্ট ফর্ম */}
+        {/* পেমেন্ট ফর্ম */}
         <div className="md:w-7/12 p-10">
           <div className="mb-8">
             <h3 className="text-xl font-bold text-gray-800">Payment Information</h3>
