@@ -3,7 +3,7 @@ import { Geist } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast'; // ইমপোর্ট করা আছেই
 
 const geist = Geist({ subsets: ['latin'] });
 
@@ -20,13 +20,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning> 
       <body className={geist.className}>
-      
-      
-          <Navbar />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
-         
-      
+        {/* টোস্টারটি এখানে বসিয়ে দিন যাতে এটি সবার উপরে থাকে */}
+        <Toaster position="top-center" reverseOrder={false} />
+        
+        <Navbar />
+        <main className="min-h-screen">{children}</main>
+        <Footer />
       </body>
     </html>
   );
