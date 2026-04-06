@@ -22,9 +22,8 @@ function CheckoutForm({ idea }: { idea: any }) {
     setError(null);
 
     try {
-      // ১. পেমেন্ট ইনটেন্ট তৈরি (ব্যাকএন্ড রাউট অনুযায়ী চেক করুন)
-      // যদি আপনার পেমেন্ট রাউট /api/payments এ থাকে তবে সেটি দিন
-      const { data } = await api.post(`/payments/create-payment-intent/${idea.id}`);
+      // ১. পেমেন্ট ইনটেন্ট তৈরি (আপনার ব্যাকএন্ড রাউট অনুযায়ী ঠিক করা হয়েছে)
+      const { data } = await api.post(`/payments/${idea.id}/payment-intent`);
       const clientSecret = data.clientSecret;
 
       if (!clientSecret) {
@@ -46,10 +45,9 @@ function CheckoutForm({ idea }: { idea: any }) {
         setError(result.error.message || "Payment Failed");
       } else {
         if (result.paymentIntent.status === 'succeeded') {
-          // ৩. পেমেন্ট কনফার্ম করা
-          await api.post(`/payments/confirm-payment`, {
-            paymentIntentId: result.paymentIntent.id,
-            ideaId: idea.id
+          // ৩. পেমেন্ট কনফার্ম করা (আপনার ব্যাকএন্ড রাউট অনুযায়ী ঠিক করা হয়েছে)
+          await api.post(`/payments/${idea.id}/confirm-payment`, {
+            paymentIntentId: result.paymentIntent.id
           });
           
           alert("Payment Successful! 🌱");
@@ -112,7 +110,7 @@ export default function PurchasePage() {
     const fetchIdea = async () => {
       try {
         setLoading(true);
-        // এখানে /basic যোগ করা হয়েছে যাতে 'Purchase required' এরর না আসে
+        // /basic রাউট ব্যবহার করা হয়েছে যাতে পেমেন্ট পেজ লোড হয়
         const res = await api.get(`/ideas/${id}/basic`);
         if (res.data) {
           setIdea(res.data);
