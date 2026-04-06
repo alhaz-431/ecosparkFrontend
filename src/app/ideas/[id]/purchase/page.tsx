@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import toast from 'react-hot-toast'; // টোস্ট ইমপোর্ট করা হয়েছে
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -22,7 +23,7 @@ function CheckoutForm({ idea }: { idea: any }) {
     setError(null);
 
     try {
-      // ১. পেমেন্ট ইনটেন্ট তৈরি (আপনার ব্যাকএন্ড রাউট অনুযায়ী ঠিক করা হয়েছে)
+      // ১. পেমেন্ট ইনটেন্ট তৈরি
       const { data } = await api.post(`/payments/${idea.id}/payment-intent`);
       const clientSecret = data.clientSecret;
 
@@ -43,20 +44,26 @@ function CheckoutForm({ idea }: { idea: any }) {
 
       if (result.error) {
         setError(result.error.message || "Payment Failed");
+        toast.error(result.error.message || "Payment Failed");
       } else {
         if (result.paymentIntent.status === 'succeeded') {
-          // ৩. পেমেন্ট কনফার্ম করা (আপনার ব্যাকএন্ড রাউট অনুযায়ী ঠিক করা হয়েছে)
-          await api.post(`/payments/${idea.id}/confirm-payment`, {
+          // ৩. ব্যাকএন্ডে পেমেন্ট কনফার্ম করা
+          const confirmRes = await api.post(`/payments/${idea.id}/confirm-payment`, {
             paymentIntentId: result.paymentIntent.id
           });
           
-          alert("Payment Successful! 🌱");
-          router.push('/dashboard/member');
+          if (confirmRes.status === 200) {
+            toast.success("Payment Successful! 🌱");
+            // সরাসরি আইডিয়া ডিটেইলস পেজে পাঠিয়ে দেওয়া হচ্ছে
+            router.push(`/ideas/${idea.id}`);
+          }
         }
       }
     } catch (err: any) {
       console.error("Payment Process Error:", err);
-      setError(err.response?.data?.message || "Backend connection error. Please try again.");
+      const msg = err.response?.data?.message || "Backend connection error. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setProcessing(false);
     }
@@ -110,7 +117,6 @@ export default function PurchasePage() {
     const fetchIdea = async () => {
       try {
         setLoading(true);
-        // /basic রাউট ব্যবহার করা হয়েছে যাতে পেমেন্ট পেজ লোড হয়
         const res = await api.get(`/ideas/${id}/basic`);
         if (res.data) {
           setIdea(res.data);
@@ -133,7 +139,6 @@ export default function PurchasePage() {
     <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center p-6">
       <div className="max-w-4xl w-full bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row">
         
-        {/* অর্ডার সামারি */}
         <div className="md:w-5/12 bg-green-700 p-10 text-white flex flex-col justify-between">
           <div>
             <div className="inline-block p-3 bg-white/10 rounded-2xl mb-6 text-xl">🌱</div>
@@ -161,7 +166,6 @@ export default function PurchasePage() {
           </div>
         </div>
 
-        {/* পেমেন্ট ফর্ম */}
         <div className="md:w-7/12 p-10">
           <div className="mb-8">
             <h3 className="text-xl font-bold text-gray-800">Payment Information</h3>
@@ -173,8 +177,8 @@ export default function PurchasePage() {
           </Elements>
 
           <div className="mt-8 flex items-center justify-center space-x-6 opacity-30 grayscale pointer-events-none">
-             <img src="https://upload.wikimedia.org/wikipedia/commons/d/d6/Visa_2021.svg" className="h-4" alt="Visa" />
-             <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-6" alt="Mastercard" />
+              <img src="https://upload.wikimedia.org/wikipedia/commons/d/d6/Visa_2021.svg" className="h-4" alt="Visa" />
+              <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-6" alt="Mastercard" />
           </div>
         </div>
 
