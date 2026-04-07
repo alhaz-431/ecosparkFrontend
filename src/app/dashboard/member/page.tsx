@@ -82,13 +82,10 @@ export default function MemberDashboard() {
     } finally { setUploading(false); }
   };
 
-  // --- আপডেট করা সাবমিট ফাংশন ---
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // ভ্যালিডেশন
     if (!form.title || !form.categoryId || !form.description) {
-      alert("সবগুলো রিকোয়ার্ড ফিল্ড পূরণ করুন!");
+      alert("সবগুলো রিকোয়ার্ড ফিল্ড পূরণ করুন!");
       return;
     }
 
@@ -96,7 +93,6 @@ export default function MemberDashboard() {
       const payload = {
         ...form,
         images: imageUrl ? [imageUrl] : [], 
-        // স্ট্রিং থেকে নাম্বারে কনভার্ট করা হয়েছে এবং FREE হলে ০ পাঠানো হচ্ছে
         price: form.type === 'PAID' ? Number(form.price) : 0, 
       };
 
@@ -110,8 +106,7 @@ export default function MemberDashboard() {
         fetchMyIdeas();
       }
     } catch (error: any) {
-      console.error("Submission Error:", error.response?.data);
-      const msg = error.response?.data?.message || "আইডিয়া সেভ করা সম্ভব হয়নি।";
+      const msg = error.response?.data?.message || "আইডিয়া সেভ করা সম্ভব হয়নি।";
       alert("Error: " + msg);
     }
   };
@@ -150,6 +145,7 @@ export default function MemberDashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-10">
+        {/* Stats Section */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Total Ideas', count: ideas.length, icon: '💡' },
@@ -212,6 +208,7 @@ export default function MemberDashboard() {
           </div>
         )}
 
+        {/* List of My Ideas */}
         <div className="space-y-4 mb-12">
           {loading ? (
              <div className="text-center py-10 text-green-700">Loading ideas...</div>
@@ -245,6 +242,7 @@ export default function MemberDashboard() {
           )}
         </div>
 
+        {/* Updated Purchased Ideas Section */}
         <div className="mt-16 bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-3 bg-emerald-100 rounded-2xl text-2xl">🛍️</div>
@@ -256,12 +254,29 @@ export default function MemberDashboard() {
 
           {purchasedIdeas.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {purchasedIdeas.map((item: any) => (
-                <div key={item.id} onClick={() => router.push(`/ideas/${item.idea?.id}`)} className="group relative bg-gray-50/50 p-6 rounded-[24px] border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl transition-all cursor-pointer">
-                  <h3 className="font-bold text-gray-800 group-hover:text-emerald-700 transition mb-2 text-lg">{item.idea?.title}</h3>
-                  <div className="text-xs font-bold text-emerald-600">View Content →</div>
-                </div>
-              ))}
+              {purchasedIdeas.map((item: any) => {
+                // এখানে আইডি চেক করা হচ্ছে যাতে undefined না আসে
+                const ideaId = item.idea?.id || item.ideaId;
+                
+                return (
+                  <div 
+                    key={item.id} 
+                    onClick={() => {
+                      if (ideaId) {
+                        router.push(`/ideas/${ideaId}`);
+                      } else {
+                        alert("Idea ID not found!");
+                      }
+                    }} 
+                    className="group relative bg-gray-50/50 p-6 rounded-[24px] border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl transition-all cursor-pointer"
+                  >
+                    <h3 className="font-bold text-gray-800 group-hover:text-emerald-700 transition mb-2 text-lg">
+                      {item.idea?.title || "Premium Idea"}
+                    </h3>
+                    <div className="text-xs font-bold text-emerald-600">View Content →</div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-16 bg-gray-50/50 rounded-[24px] border-2 border-dashed border-gray-200">
