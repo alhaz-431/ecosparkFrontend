@@ -135,6 +135,13 @@ export default function MemberDashboard() {
     }
   };
 
+  if (loading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-700 mb-4"></div>
+      <p className="text-green-800 font-bold">Syncing your Dashboard...</p>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="bg-gradient-to-r from-green-700 to-emerald-600 text-white py-10 px-6">
@@ -201,18 +208,16 @@ export default function MemberDashboard() {
               {form.type === 'PAID' && (
                 <input type="number" placeholder="Price (৳)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full border p-3 rounded-xl outline-none" required />
               )}
-              <button type="submit" disabled={uploading} className="w-full py-3 rounded-xl font-bold bg-green-700 text-white hover:bg-green-800 transition">
+              <button type="submit" disabled={uploading} className="w-full py-3 rounded-xl font-bold bg-green-700 text-white hover:bg-green-800 transition shadow-lg">
                 {uploading ? 'ইমেজ আপলোড হচ্ছে...' : 'Save as Draft'}
               </button>
             </form>
           </div>
         )}
 
-        {/* List of My Ideas */}
+        {/* My Ideas List */}
         <div className="space-y-4 mb-12">
-          {loading ? (
-             <div className="text-center py-10 text-green-700">Loading ideas...</div>
-          ) : ideas.length === 0 ? (
+          {ideas.length === 0 ? (
             <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-gray-300 text-gray-400">No ideas created yet.</div>
           ) : (
             ideas.map((idea) => (
@@ -232,7 +237,7 @@ export default function MemberDashboard() {
                   <Link href={`/ideas/${idea.id}`} className="px-4 py-2 bg-gray-100 rounded-full text-xs font-bold hover:bg-gray-200">View</Link>
                   {idea.status === 'DRAFT' && (
                     <>
-                      <button onClick={() => handleSubmitForReview(idea.id)} className="px-4 py-2 bg-green-700 text-white rounded-full text-xs font-bold">Submit</button>
+                      <button onClick={() => handleSubmitForReview(idea.id)} className="px-4 py-2 bg-green-700 text-white rounded-full text-xs font-bold shadow-sm">Submit</button>
                       <button onClick={() => handleDelete(idea.id)} className="px-4 py-2 bg-red-100 text-red-600 rounded-full text-xs font-bold">Delete</button>
                     </>
                   )}
@@ -242,7 +247,7 @@ export default function MemberDashboard() {
           )}
         </div>
 
-        {/* Updated Purchased Ideas Section */}
+        {/* Purchased Ideas Section */}
         <div className="mt-16 bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-3 bg-emerald-100 rounded-2xl text-2xl">🛍️</div>
@@ -255,7 +260,6 @@ export default function MemberDashboard() {
           {purchasedIdeas.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {purchasedIdeas.map((item: any) => {
-                // এখানে আইডি চেক করা হচ্ছে যাতে undefined না আসে
                 const ideaId = item.idea?.id || item.ideaId;
                 
                 return (
@@ -265,7 +269,7 @@ export default function MemberDashboard() {
                       if (ideaId) {
                         router.push(`/ideas/${ideaId}`);
                       } else {
-                        alert("Idea ID not found!");
+                        alert("Idea ID not found! Please check backend connection.");
                       }
                     }} 
                     className="group relative bg-gray-50/50 p-6 rounded-[24px] border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl transition-all cursor-pointer"
