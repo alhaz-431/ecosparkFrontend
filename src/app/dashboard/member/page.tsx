@@ -7,7 +7,7 @@ import api from '@/lib/axios';
 export default function MemberDashboard() {
   const [user, setUser] = useState<any>(null);
   const [ideas, setIdeas] = useState<any[]>([]);
-  const [purchasedIdeas, setPurchasedIdeas] = useState<any[]>([]); // কেনা আইডিয়ার স্টেট
+  const [purchasedIdeas, setPurchasedIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   
@@ -31,7 +31,6 @@ export default function MemberDashboard() {
     if (!stored) return router.push('/login');
     setUser(JSON.parse(stored));
     
-    // সব ডাটা একসাথে ফেচ করার জন্য
     const loadAllData = async () => {
       setLoading(true);
       await Promise.all([fetchMyIdeas(), fetchCategories(), fetchPurchasedIdeas()]);
@@ -45,14 +44,13 @@ export default function MemberDashboard() {
       const res = await api.get('/ideas/my');
       setIdeas(res.data || []);
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching my ideas:", error);
     }
   };
 
-  // --- কেনা আইডিয়ার লিস্ট ফেচ করার ফাংশন ---
   const fetchPurchasedIdeas = async () => {
     try {
-      const res = await api.get('/ideas/purchased'); // আপনার ব্যাকএন্ড রাউট অনুযায়ী
+      const res = await api.get('/ideas/purchased');
       setPurchasedIdeas(res.data || []);
     } catch (error) {
       console.error("Error fetching purchased ideas:", error);
@@ -64,7 +62,7 @@ export default function MemberDashboard() {
       const res = await api.get('/categories');
       setCategories(res.data || []);
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching categories:", error);
     }
   };
 
@@ -84,19 +82,38 @@ export default function MemberDashboard() {
     } finally { setUploading(false); }
   };
 
+  // --- আপডেট করা সাবমিট ফাংশন ---
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ভ্যালিডেশন
+    if (!form.title || !form.categoryId || !form.description) {
+      alert("সবগুলো রিকোয়ার্ড ফিল্ড পূরণ করুন!");
+      return;
+    }
+
     try {
-      await api.post('/ideas', {
+      const payload = {
         ...form,
         images: imageUrl ? [imageUrl] : [], 
-        price: form.type === 'PAID' ? Number(form.price) : null,
-      });
-      setShowForm(false);
-      setForm({ title: '', problemStatement: '', solution: '', description: '', categoryId: '', type: 'FREE', price: '' });
-      setImageUrl(""); 
-      fetchMyIdeas();
-    } catch (error) { console.error(error); }
+        // স্ট্রিং থেকে নাম্বারে কনভার্ট করা হয়েছে এবং FREE হলে ০ পাঠানো হচ্ছে
+        price: form.type === 'PAID' ? Number(form.price) : 0, 
+      };
+
+      const res = await api.post('/ideas', payload);
+
+      if (res.status === 201 || res.status === 200) {
+        alert("Idea saved successfully! 🎉");
+        setShowForm(false);
+        setForm({ title: '', problemStatement: '', solution: '', description: '', categoryId: '', type: 'FREE', price: '' });
+        setImageUrl(""); 
+        fetchMyIdeas();
+      }
+    } catch (error: any) {
+      console.error("Submission Error:", error.response?.data);
+      const msg = error.response?.data?.message || "আইডিয়া সেভ করা সম্ভব হয়নি।";
+      alert("Error: " + msg);
+    }
   };
 
   const handleSubmitForReview = async (id: string) => {
@@ -133,7 +150,6 @@ export default function MemberDashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-10">
-        {/* Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Total Ideas', count: ideas.length, icon: '💡' },
@@ -149,7 +165,6 @@ export default function MemberDashboard() {
           ))}
         </div>
 
-        {/* My Ideas Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">My Ideas</h2>
           <button
@@ -160,9 +175,8 @@ export default function MemberDashboard() {
           </button>
         </div>
 
-        {/* New Idea Form */}
         {showForm && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border-2 border-green-100 animate-in fade-in zoom-in duration-300">
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border-2 border-green-100">
             <h3 className="text-xl font-bold text-gray-800 mb-4">Create New Idea</h3>
             <form onSubmit={handleSubmitForm} className="space-y-4">
               <input type="text" placeholder="Idea Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full border p-3 rounded-xl focus:ring-2 focus:ring-green-500 outline-none" required />
@@ -176,6 +190,7 @@ export default function MemberDashboard() {
 
               <textarea placeholder="Problem Statement" value={form.problemStatement} onChange={(e) => setForm({ ...form, problemStatement: e.target.value })} className="w-full border p-3 rounded-xl h-24 outline-none focus:ring-2 focus:ring-green-500" required />
               <textarea placeholder="Proposed Solution" value={form.solution} onChange={(e) => setForm({ ...form, solution: e.target.value })} className="w-full border p-3 rounded-xl h-24 outline-none focus:ring-2 focus:ring-green-500" required />
+              <textarea placeholder="Full Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full border p-3 rounded-xl h-24 outline-none focus:ring-2 focus:ring-green-500" required />
               
               <div className="grid grid-cols-2 gap-4">
                 <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className="border p-3 rounded-xl outline-none" required>
@@ -190,20 +205,27 @@ export default function MemberDashboard() {
               {form.type === 'PAID' && (
                 <input type="number" placeholder="Price (৳)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full border p-3 rounded-xl outline-none" required />
               )}
-              <button type="submit" disabled={uploading} className="w-full py-3 rounded-xl font-bold bg-green-700 text-white hover:bg-green-800 transition">Save as Draft</button>
+              <button type="submit" disabled={uploading} className="w-full py-3 rounded-xl font-bold bg-green-700 text-white hover:bg-green-800 transition">
+                {uploading ? 'ইমেজ আপলোড হচ্ছে...' : 'Save as Draft'}
+              </button>
             </form>
           </div>
         )}
 
-        {/* My Ideas List */}
         <div className="space-y-4 mb-12">
-          {ideas.length === 0 && !loading ? (
+          {loading ? (
+             <div className="text-center py-10 text-green-700">Loading ideas...</div>
+          ) : ideas.length === 0 ? (
             <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-gray-300 text-gray-400">No ideas created yet.</div>
           ) : (
             ideas.map((idea) => (
               <div key={idea.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex justify-between items-center hover:shadow-md transition">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 bg-green-50 rounded-xl flex items-center justify-center text-xl">💡</div>
+                  {idea.images?.[0] ? (
+                    <img src={idea.images[0]} className="h-12 w-12 rounded-xl object-cover" alt="" />
+                  ) : (
+                    <div className="h-12 w-12 bg-green-50 rounded-xl flex items-center justify-center text-xl">💡</div>
+                  )}
                   <div>
                     <h3 className="font-bold text-gray-800">{idea.title}</h3>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${getStatusColor(idea.status)}`}>{idea.status}</span>
@@ -212,7 +234,10 @@ export default function MemberDashboard() {
                 <div className="flex gap-2">
                   <Link href={`/ideas/${idea.id}`} className="px-4 py-2 bg-gray-100 rounded-full text-xs font-bold hover:bg-gray-200">View</Link>
                   {idea.status === 'DRAFT' && (
-                    <button onClick={() => handleSubmitForReview(idea.id)} className="px-4 py-2 bg-green-700 text-white rounded-full text-xs font-bold">Submit</button>
+                    <>
+                      <button onClick={() => handleSubmitForReview(idea.id)} className="px-4 py-2 bg-green-700 text-white rounded-full text-xs font-bold">Submit</button>
+                      <button onClick={() => handleDelete(idea.id)} className="px-4 py-2 bg-red-100 text-red-600 rounded-full text-xs font-bold">Delete</button>
+                    </>
                   )}
                 </div>
               </div>
@@ -220,7 +245,6 @@ export default function MemberDashboard() {
           )}
         </div>
 
-        {/* --- Purchased Ideas Section --- */}
         <div className="mt-16 bg-white p-8 rounded-[32px] shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-8">
             <div className="p-3 bg-emerald-100 rounded-2xl text-2xl">🛍️</div>
@@ -233,31 +257,15 @@ export default function MemberDashboard() {
           {purchasedIdeas.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {purchasedIdeas.map((item: any) => (
-                <div 
-                  key={item.id} 
-                  onClick={() => router.push(`/ideas/${item.idea.id}`)}
-                  className="group relative bg-gray-50/50 p-6 rounded-[24px] border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl hover:shadow-emerald-900/5 transition-all duration-300 cursor-pointer overflow-hidden"
-                >
-                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-100 transition-opacity">
-                    <span className="text-emerald-600 font-black text-4xl">✓</span>
-                  </div>
-                  <div className="mb-4">
-                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg font-black uppercase tracking-wider">Unlocked</span>
-                  </div>
-                  <h3 className="font-bold text-gray-800 group-hover:text-emerald-700 transition mb-2 text-lg line-clamp-1">{item.idea?.title}</h3>
-                  <p className="text-sm text-gray-500 line-clamp-2 mb-6">Explore the full sustainability solution now.</p>
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
-                    <span className="text-xs font-bold text-emerald-600">View Content →</span>
-                    <span className="text-[10px] text-gray-300 font-medium">Purchased</span>
-                  </div>
+                <div key={item.id} onClick={() => router.push(`/ideas/${item.idea?.id}`)} className="group relative bg-gray-50/50 p-6 rounded-[24px] border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl transition-all cursor-pointer">
+                  <h3 className="font-bold text-gray-800 group-hover:text-emerald-700 transition mb-2 text-lg">{item.idea?.title}</h3>
+                  <div className="text-xs font-bold text-emerald-600">View Content →</div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="text-center py-16 bg-gray-50/50 rounded-[24px] border-2 border-dashed border-gray-200">
-              <div className="text-4xl mb-3 opacity-20">📦</div>
-              <p className="text-gray-400 font-medium italic">You haven't purchased any premium ideas yet.</p>
-              <Link href="/ideas" className="inline-block mt-4 text-emerald-600 text-sm font-bold hover:underline">Explore Marketplace</Link>
+              <p className="text-gray-400 italic">You haven't purchased any premium ideas yet.</p>
             </div>
           )}
         </div>
