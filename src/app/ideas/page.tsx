@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
 
-// ডাটা টাইপ ডিফাইন করা (এরর কমাতে সাহায্য করবে)
+// ডাটা টাইপ ইন্টারফেস
 interface Idea {
   id: string;
   title: string;
@@ -41,12 +41,11 @@ export default function IdeasPage() {
       if (sort) params.append('sort', sort);
       params.append('page', page.toString());
       
-      // আপনার রেন্ডার ব্যাকএন্ড এপিআই কল
       const res = await api.get(`/ideas?${params.toString()}`);
       
-      // ব্যাকএন্ড যদি সরাসরি অ্যারে পাঠায় বা অবজেক্টে পাঠায় দুইটাই হ্যান্ডেল করবে
+      // ব্যাকএন্ড রেসপন্স স্ট্রাকচার অনুযায়ী ডাটা সেট করা
       const fetchedIdeas = res.data.ideas || res.data || [];
-      setIdeas(fetchedIdeas);
+      setIdeas(Array.isArray(fetchedIdeas) ? fetchedIdeas : []);
       setTotalPages(res.data.pagination?.totalPages || 1);
     } catch (error) {
       console.error('Fetch Error:', error);
@@ -70,7 +69,7 @@ export default function IdeasPage() {
         <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto">
           <input
             type="text"
-            placeholder="Search ideas by title or keyword..."
+            placeholder="Search ideas..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 p-4 rounded-xl text-gray-800 focus:outline-none shadow-lg"
@@ -139,7 +138,7 @@ export default function IdeasPage() {
         <main className="flex-1">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
+              {[1, 2, 3].map((i) => (
                 <div key={i} className="h-80 bg-gray-200 rounded-3xl"></div>
               ))}
             </div>
@@ -153,13 +152,13 @@ export default function IdeasPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {ideas.map((idea) => (
                   <div key={idea.id} className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col border border-gray-100">
-                    {/* Image Section */}
                     <div className="relative h-48 bg-slate-200">
                       <img
-                        src={idea.images?.[0] || '/images/default-idea.jpg'}
+                        src={idea.images?.[0] || 'https://placehold.co/400x300?text=EcoSpark'}
                         alt={idea.title}
                         className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=EcoSpark' }}
+                        // 404 এরর ঠেকাতে onError হ্যান্ডলার
+                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x300?text=EcoSpark' }}
                       />
                       <div className="absolute top-3 right-3">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-md ${
@@ -171,7 +170,7 @@ export default function IdeasPage() {
                     </div>
 
                     <div className="p-5 flex-1 flex flex-col">
-                      <span className="text-[10px] font-bold text-emerald-600 uppercase mb-1">{idea.category?.name || 'Idea'}</span>
+                      <span className="text-[10px] font-bold text-emerald-600 uppercase mb-1">{idea.category?.name || 'Sustainability'}</span>
                       <h3 className="font-bold text-gray-800 line-clamp-1 mb-2">{idea.title}</h3>
                       <p className="text-gray-500 text-xs line-clamp-2 mb-4 flex-1">{idea.description}</p>
 
@@ -181,7 +180,6 @@ export default function IdeasPage() {
                           <span>👎 {idea.votes?.filter(v => v.value === -1).length || 0}</span>
                         </div>
                         
-                        {/* বাটন লজিক: কেনা থাকলে সরাসরি ডিটেইলস দেখাবে */}
                         {idea.type === 'FREE' || idea.isPurchased ? (
                           <Link
                             href={`/ideas/${idea.id}`}
@@ -194,7 +192,7 @@ export default function IdeasPage() {
                             href={`/ideas/${idea.id}/purchase`}
                             className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
                           >
-                            💰 Buy Now
+                            💰 Unlock Idea
                           </Link>
                         )}
                       </div>
@@ -213,19 +211,6 @@ export default function IdeasPage() {
                   >
                     Prev
                   </button>
-                  <div className="flex gap-1">
-                    {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setPage(i + 1)}
-                        className={`w-8 h-8 rounded-lg font-bold text-xs transition ${
-                          page === i + 1 ? 'bg-emerald-700 text-white' : 'bg-white border text-gray-600'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                  </div>
                   <button
                     disabled={page === totalPages}
                     onClick={() => setPage(page + 1)}
