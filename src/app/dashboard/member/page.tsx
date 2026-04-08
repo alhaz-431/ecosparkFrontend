@@ -10,7 +10,7 @@ export default function MemberDashboard() {
   const [purchasedIdeas, setPurchasedIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null); // এডিট করার জন্য নতুন স্টেট
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState(""); 
@@ -83,7 +83,6 @@ export default function MemberDashboard() {
     } finally { setUploading(false); }
   };
 
-  // এডিট বাটনে ক্লিক করলে ডাটা ফর্মে লোড হবে
   const handleEdit = (idea: any) => {
     setEditingId(idea.id);
     setForm({
@@ -116,11 +115,9 @@ export default function MemberDashboard() {
 
       let res;
       if (editingId) {
-        // যদি এডিট মোড হয়
         res = await api.put(`/ideas/${editingId}`, payload);
         alert("Idea updated successfully! ✨");
       } else {
-        // যদি নতুন আইডিয়া হয়
         res = await api.post('/ideas', payload);
         alert("Idea saved successfully! 🎉");
       }
@@ -133,7 +130,7 @@ export default function MemberDashboard() {
         fetchMyIdeas();
       }
     } catch (error: any) {
-      const msg = error.response?.data?.message || "প্রক্রিয়াটি সম্পন্ন করা সম্ভব হয়নি।";
+      const msg = error.response?.data?.message || "প্রক্রিয়াটি সম্পন্ন করা সম্ভব হয়নি।";
       alert("Error: " + msg);
     }
   };
@@ -266,8 +263,6 @@ export default function MemberDashboard() {
                 </div>
                 <div className="flex gap-2">
                   <Link href={`/ideas/${idea.id}`} className="px-4 py-2 bg-gray-100 rounded-full text-xs font-bold hover:bg-gray-200">View</Link>
-                  
-                  {/* কেবল DRAFT বা REJECTED হলে Edit/Submit/Delete বাটন দেখাবে */}
                   {(idea.status === 'DRAFT' || idea.status === 'REJECTED') && (
                     <>
                       <button onClick={() => handleEdit(idea)} className="px-4 py-2 bg-blue-100 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-200">Edit</button>
@@ -294,16 +289,15 @@ export default function MemberDashboard() {
           {purchasedIdeas.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {purchasedIdeas.map((item: any) => {
-                const ideaId = item.idea?.id || item.ideaId;
-                
+                const targetId = item.idea?.id || item.ideaId;
                 return (
                   <div 
                     key={item.id} 
                     onClick={() => {
-                      if (ideaId) {
-                        router.push(`/ideas/${ideaId}`);
+                      if (targetId) {
+                        router.push(`/ideas/${targetId}`);
                       } else {
-                        alert("Idea ID not found!");
+                        alert("Idea ID not found! Please check backend response.");
                       }
                     }} 
                     className="group relative bg-gray-50/50 p-6 rounded-[24px] border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl transition-all cursor-pointer"
