@@ -194,7 +194,7 @@ export default function IdeasPage() {
                             href={`/ideas/${idea.id}/purchase`}
                             className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
                           >
-                            💰 Unlock Now
+                            💰 Buy Now
                           </Link>
                         )}
                       </div>
