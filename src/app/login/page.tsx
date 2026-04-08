@@ -8,7 +8,7 @@ import { Eye, EyeOff } from 'lucide-react'; // আইকন ব্যবহা�
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState<'USER' | 'ADMIN'>('USER');
-  const [showPassword, setShowPassword] = useState(false); // পাসওয়ার্ড দেখানোর স্টেট
+  const [showPassword, setShowPassword] = useState(false); // পাসওয়ার্ড দেখানোর স্টেট
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -56,7 +56,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
         <h2 className="text-3xl font-black text-green-700 mb-2 text-center">EcoSpark Hub</h2>
-        <p className="text-center text-gray-500 mb-8 text-sm">Welcome back! Please login</p>
+        <p className="text-center text-gray-500 mb-8 text-sm">
+          {isLogin ? 'Welcome back! Please login' : 'Create an account to join us'}
+        </p>
 
         {/* রেডিও বাটন */}
         <div className="flex justify-center items-center gap-8 mb-8 bg-gray-50 py-3 rounded-xl">
@@ -129,7 +131,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-700 text-white p-4 rounded-xl font-bold hover:bg-green-800 disabled:opacity-50 shadow-lg"
+            className="w-full bg-green-700 text-white p-4 rounded-xl font-bold hover:bg-green-800 disabled:opacity-50 shadow-lg transition-all active:scale-95"
           >
             {loading ? 'Processing...' : isLogin ? `Login as ${role}` : `Register as ${role}`}
           </button>
@@ -137,8 +139,8 @@ export default function LoginPage() {
 
         <p className="text-center mt-8 text-sm text-gray-500">
           {isLogin ? "Don't have an account? " : 'Already have an account? '}
-          <button onClick={() => setIsLogin(!isLogin)} className="text-green-700 font-bold hover:underline">
-            {isLogin ? 'Sign Up' : 'Sign In'}
+          <button onClick={() => setIsLogin(!isLogin)} className="text-green-700 font-bold hover:underline ml-1">
+            {isLogin ? 'Register' : 'Login'}
           </button>
         </p>
       </div>
