@@ -10,6 +10,7 @@ export default function MemberDashboard() {
   const [purchasedIdeas, setPurchasedIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null); // এডিট করার জন্য নতুন স্টেট
   
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState(""); 
@@ -82,6 +83,23 @@ export default function MemberDashboard() {
     } finally { setUploading(false); }
   };
 
+  // এডিট বাটনে ক্লিক করলে ডাটা ফর্মে লোড হবে
+  const handleEdit = (idea: any) => {
+    setEditingId(idea.id);
+    setForm({
+      title: idea.title,
+      problemStatement: idea.problemStatement,
+      solution: idea.solution,
+      description: idea.description,
+      categoryId: idea.categoryId,
+      type: idea.type,
+      price: idea.price?.toString() || '',
+    });
+    setImageUrl(idea.images?.[0] || "");
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.categoryId || !form.description) {
@@ -96,17 +114,26 @@ export default function MemberDashboard() {
         price: form.type === 'PAID' ? Number(form.price) : 0, 
       };
 
-      const res = await api.post('/ideas', payload);
+      let res;
+      if (editingId) {
+        // যদি এডিট মোড হয়
+        res = await api.put(`/ideas/${editingId}`, payload);
+        alert("Idea updated successfully! ✨");
+      } else {
+        // যদি নতুন আইডিয়া হয়
+        res = await api.post('/ideas', payload);
+        alert("Idea saved successfully! 🎉");
+      }
 
       if (res.status === 201 || res.status === 200) {
-        alert("Idea saved successfully! 🎉");
         setShowForm(false);
+        setEditingId(null);
         setForm({ title: '', problemStatement: '', solution: '', description: '', categoryId: '', type: 'FREE', price: '' });
         setImageUrl(""); 
         fetchMyIdeas();
       }
     } catch (error: any) {
-      const msg = error.response?.data?.message || "আইডিয়া সেভ করা সম্ভব হয়নি।";
+      const msg = error.response?.data?.message || "প্রক্রিয়াটি সম্পন্ন করা সম্ভব হয়নি।";
       alert("Error: " + msg);
     }
   };
@@ -114,6 +141,7 @@ export default function MemberDashboard() {
   const handleSubmitForReview = async (id: string) => {
     try {
       await api.patch(`/ideas/${id}/submit`);
+      alert("Submitted for review! 🚀");
       fetchMyIdeas();
     } catch (error) { console.error(error); }
   };
@@ -171,7 +199,10 @@ export default function MemberDashboard() {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">My Ideas</h2>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              setShowForm(!showForm);
+              if (showForm) { setEditingId(null); setForm({ title: '', problemStatement: '', solution: '', description: '', categoryId: '', type: 'FREE', price: '' }); setImageUrl(""); }
+            }}
             className="bg-green-700 text-white px-6 py-2 rounded-full hover:bg-green-800 transition font-semibold shadow-md"
           >
             {showForm ? '✕ Cancel' : '+ New Idea'}
@@ -180,7 +211,7 @@ export default function MemberDashboard() {
 
         {showForm && (
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border-2 border-green-100">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Create New Idea</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-4">{editingId ? 'Edit Idea' : 'Create New Idea'}</h3>
             <form onSubmit={handleSubmitForm} className="space-y-4">
               <input type="text" placeholder="Idea Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full border p-3 rounded-xl focus:ring-2 focus:ring-green-500 outline-none" required />
               
@@ -209,7 +240,7 @@ export default function MemberDashboard() {
                 <input type="number" placeholder="Price (৳)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full border p-3 rounded-xl outline-none" required />
               )}
               <button type="submit" disabled={uploading} className="w-full py-3 rounded-xl font-bold bg-green-700 text-white hover:bg-green-800 transition shadow-lg">
-                {uploading ? 'ইমেজ আপলোড হচ্ছে...' : 'Save as Draft'}
+                {uploading ? 'ইমেজ আপলোড হচ্ছে...' : (editingId ? 'Update Idea' : 'Save as Draft')}
               </button>
             </form>
           </div>
@@ -235,10 +266,13 @@ export default function MemberDashboard() {
                 </div>
                 <div className="flex gap-2">
                   <Link href={`/ideas/${idea.id}`} className="px-4 py-2 bg-gray-100 rounded-full text-xs font-bold hover:bg-gray-200">View</Link>
-                  {idea.status === 'DRAFT' && (
+                  
+                  {/* কেবল DRAFT বা REJECTED হলে Edit/Submit/Delete বাটন দেখাবে */}
+                  {(idea.status === 'DRAFT' || idea.status === 'REJECTED') && (
                     <>
-                      <button onClick={() => handleSubmitForReview(idea.id)} className="px-4 py-2 bg-green-700 text-white rounded-full text-xs font-bold shadow-sm">Submit</button>
-                      <button onClick={() => handleDelete(idea.id)} className="px-4 py-2 bg-red-100 text-red-600 rounded-full text-xs font-bold">Delete</button>
+                      <button onClick={() => handleEdit(idea)} className="px-4 py-2 bg-blue-100 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-200">Edit</button>
+                      <button onClick={() => handleSubmitForReview(idea.id)} className="px-4 py-2 bg-green-700 text-white rounded-full text-xs font-bold shadow-sm hover:bg-green-800">Submit</button>
+                      <button onClick={() => handleDelete(idea.id)} className="px-4 py-2 bg-red-100 text-red-600 rounded-full text-xs font-bold hover:bg-red-200">Delete</button>
                     </>
                   )}
                 </div>
@@ -269,7 +303,7 @@ export default function MemberDashboard() {
                       if (ideaId) {
                         router.push(`/ideas/${ideaId}`);
                       } else {
-                        alert("Idea ID not found! Please check backend connection.");
+                        alert("Idea ID not found!");
                       }
                     }} 
                     className="group relative bg-gray-50/50 p-6 rounded-[24px] border border-gray-100 hover:border-emerald-200 hover:bg-white hover:shadow-xl transition-all cursor-pointer"
