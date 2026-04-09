@@ -1,135 +1,200 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import api from '@/lib/axios';
 
-export default function IdeaDetailsPage() {
-  const params = useParams();
-  const router = useRouter();
-  const [idea, setIdea] = useState<any>(null);
+// ইন্টারফেসগুলো
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface Idea {
+  id: string;
+  title: string;
+  description: string;
+  type: 'FREE' | 'PAID';
+  price?: number;
+  images: string[];
+  category?: { name: string };
+  isPurchased?: boolean;
+  votes?: { value: number }[];
+  createdAt: string;
+}
+
+export default function IdeasPage() {
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const [type, setType] = useState('');
+  const [sort, setSort] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
+  // ক্যাটাগরি ফেচ করা
   useEffect(() => {
-    fetchIdeaDetails();
-  }, [params.id]);
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get('/categories');
+        setCategories(res.data || []);
+      } catch (error) {
+        console.error('Category Fetch Error:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
-  const fetchIdeaDetails = async () => {
+  // আইডিয়া ফেচ করার মেইন লজিক
+  const fetchIdeas = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await api.get(`/ideas/${params.id}`);
-      setIdea(res.data);
+      const queryParams: any = { page };
+      if (search) queryParams.search = search;
+      if (category) queryParams.category = category;
+      if (type) queryParams.type = type;
+      if (sort) queryParams.sort = sort;
+
+      const res = await api.get('/ideas', { params: queryParams });
+      const fetchedData = res.data.ideas || res.data || [];
+      setIdeas(Array.isArray(fetchedData) ? fetchedData : []);
+      setTotalPages(res.data.pagination?.totalPages || 1);
     } catch (error) {
-      console.error("Error fetching details:", error);
+      console.error('Fetch Error:', error);
+      setIdeas([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, category, type, sort, search]);
 
-  const handleVote = async (value: number) => {
-    try {
-      await api.post(`/votes/${params.id}/vote`, { value });
-      fetchIdeaDetails(); 
-    } catch (error: any) {
-      alert(error.response?.data?.message || "ভোট দিতে লগইন করুন!");
-    }
-  };
+  useEffect(() => {
+    fetchIdeas();
+  }, [fetchIdeas]);
 
-  if (loading) return <div className="p-20 text-center text-gray-500">Loading details...</div>;
-  if (!idea) return <div className="p-20 text-center text-red-500">Idea not found!</div>;
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    fetchIdeas();
+  };
 
   return (
-    <div className="max-w-7xl mx-auto py-10 px-6">
-      {/* ব্যাক বাটন */}
-      <button 
-        onClick={() => router.back()}
-        className="mb-8 flex items-center gap-2.5 text-gray-600 hover:text-green-700 font-bold transition group"
-      >
-        <span className="text-xl group-hover:-translate-x-1.5 transition-transform">←</span> 
-        Back to Ideas
-      </button>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-green-800 to-emerald-600 py-16 px-6 text-center text-white">
+        <h1 className="text-4xl font-extrabold mb-4">🌱 All Sustainability Ideas</h1>
+        <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto">
+          <input
+            type="text"
+            placeholder="Search ideas..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 p-4 rounded-xl text-gray-800 focus:outline-none shadow-lg"
+          />
+          <button type="submit" className="bg-white text-green-700 px-8 py-4 rounded-xl font-bold hover:bg-green-50 shadow-md transition-all">
+            Search
+          </button>
+        </form>
+      </section>
 
-      {/* ২-কলাম লেআউট: বামে ছবি, ডানে বর্ণনা ও ভোট */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-        
-        {/* বাম কলাম: ছবির সেকশন */}
+      <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8">
+        {/* Sidebar Filters */}
+        <aside className="w-full lg:w-64 flex-shrink-0">
+          <div className="bg-white rounded-2xl shadow p-6 sticky top-24 border">
+            <h3 className="font-bold text-gray-800 mb-4 text-lg">🔍 Filters</h3>
+            <div className="space-y-5">
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white cursor-pointer"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
 
-{/* ছবির সেকশন */}
-<div className="rounded-3xl overflow-hidden bg-gray-100 dark:bg-slate-900 mb-10 shadow-md border dark:border-slate-800 flex items-center justify-center min-h-[300px]">
-  <img 
-    src={idea.images && idea.images.length > 0 
-      ? idea.images[0] 
-      : 'https://via.placeholder.com/800x500?text=EcoSpark+Idea'} // ছবি না থাকলে এটি দেখাবে
-    className="w-full max-h-[500px] object-contain mx-auto"
-    alt={idea.title} 
-    onError={(e) => {
-      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x500?text=Image+Not+Found';
-    }}
-  />
-</div>
-        {/* ডান কলাম: বর্ণনা এবং ভোট */}
-        <div className="space-y-10">
-          <div>
-            <span className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
-              {idea.category?.name}
-            </span>
-            <h1 className="text-5xl font-black text-gray-900 dark:text-white mt-5 mb-5 leading-tight">
-              {idea.title}
-            </h1>
-          </div>
-
-          {/* ভোট সেকশন (ডানপাশে বা নিচে থাকবে) */}
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-xl border dark:border-slate-800 text-center">
-            <h4 className="font-bold text-gray-500 uppercase text-xs tracking-widest mb-6">Community Vote</h4>
-            <div className="flex justify-around items-center">
-              <button 
-                onClick={() => handleVote(1)}
-                className="flex flex-col items-center gap-2.5 group"
-              >
-                <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-green-50 dark:bg-green-900/20 group-hover:scale-110 transition text-4xl shadow-md border dark:border-green-800/20">
-                  👍
-                </div>
-                <span className="font-black text-green-600 text-2xl">
-                  {idea.votes?.filter((v: any) => v.value === 1).length || 0}
-                </span>
-              </button>
-
-              <div className="w-[1px] h-14 bg-gray-100 dark:bg-slate-800"></div>
-
-              <button 
-                onClick={() => handleVote(-1)}
-                className="flex flex-col items-center gap-2.5 group"
-              >
-                <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-red-50 dark:bg-red-900/20 group-hover:scale-110 transition text-4xl shadow-md border dark:border-red-800/20">
-                  👎
-                </div>
-                <span className="font-black text-red-500 text-2xl">
-                  {idea.votes?.filter((v: any) => v.value === -1).length || 0}
-                </span>
-              </button>
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">Type</label>
+                <select
+                  value={type}
+                  onChange={(e) => { setType(e.target.value); setPage(1); }}
+                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white cursor-pointer"
+                >
+                  <option value="">Free & Paid</option>
+                  <option value="FREE">🆓 Free Only</option>
+                  <option value="PAID">💰 Paid Only</option>
+                </select>
+              </div>
             </div>
-            <p className="mt-7 text-xs text-gray-400 font-medium">Click to cast your vote</p>
           </div>
+        </aside>
 
-          <div className="space-y-8 bg-white dark:bg-slate-900 p-8 rounded-3xl border dark:border-slate-800 shadow-lg">
-            <section>
-              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-3.5 flex items-center gap-2">
-                📝 Description
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed italic font-medium">
-                "{idea.description}"
-              </p>
-            </section>
+        {/* Main Ideas Grid */}
+        <main className="flex-1">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {[1, 2, 3, 4].map(i => <div key={i} className="h-[400px] bg-gray-200 animate-pulse rounded-[2rem]"></div>)}
+            </div>
+          ) : ideas.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {ideas.map((idea) => (
+                <div key={idea.id} className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col group">
+                  <div className="h-52 bg-green-50 flex items-center justify-center overflow-hidden relative">
+                    {idea.images?.[0] ? (
+                      <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <span className="text-6xl">🌿</span>
+                    )}
+                    <div className="absolute top-4 right-4">
+                       <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${idea.type === 'FREE' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}`}>
+                         {idea.type === 'FREE' ? 'FREE' : `৳${idea.price}`}
+                       </span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-8 flex-1 flex flex-col">
+                    <span className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase self-start">
+                      {idea.category?.name || 'Idea'}
+                    </span>
+                    <h3 className="text-2xl font-bold text-gray-900 mt-4 line-clamp-1">{idea.title}</h3>
+                    <p className="text-gray-500 text-sm mt-3 line-clamp-2 leading-relaxed flex-1">{idea.description}</p>
+                    
+                    {/* বাটন সেকশন - এখানে onClick সরানো হয়েছে */}
+                    <div className="flex flex-col gap-3 mt-8">
+                      <Link href={`/ideas/${idea.id}`} className="block text-center bg-gray-50 text-gray-700 py-3.5 rounded-2xl font-bold hover:bg-gray-100 transition-all border border-gray-100">
+                        View Detail →
+                      </Link>
 
-            <section>
-              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-3.5 flex items-center gap-2">
-                🎯 Problem Statement
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                {idea.problemStatement || "No problem statement provided."}
-              </p>
-            </section>
-          </div>
+                      {idea.type === 'PAID' && !idea.isPurchased && (
+                        <Link 
+                          href={`/purchase/${idea.id}`} 
+                          className="block w-full text-center bg-green-700 text-white py-4 rounded-2xl font-extrabold hover:bg-green-800 transition-all shadow-lg shadow-green-200"
+                        >
+                          🛒 Buy Now
+                        </Link>
+                      )}
 
-        </div>
+                      {idea.isPurchased && (
+                        <div className="text-center py-3.5 rounded-2xl bg-blue-50 text-blue-700 font-bold border border-blue-100 flex items-center justify-center gap-2">
+                          ✅ Owned
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-gray-300">
+               <span className="text-6xl">🏜️</span>
+               <h3 className="text-xl font-bold mt-4 text-gray-400">No ideas found!</h3>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
