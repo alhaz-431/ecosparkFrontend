@@ -39,7 +39,7 @@ export default function HomePage() {
 
   return (
     // বডি কালার এখন হালকা সবুজ আভা (bg-green-50)
-    <div className="bg-green-50/50 min-h-screen">
+    <div className="bg-green-100/50 min-h-screen">
 
       {/* Hero Section - Image occupies full banner area */}
       <section className="relative bg-green-800 text-white py-28 px-6 text-center overflow-hidden min-h-[500px] flex items-center justify-center">
