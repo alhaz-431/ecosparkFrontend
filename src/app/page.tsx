@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
-import { motion } from 'framer-motion'; // অ্যানিমেশনের জন্য
+import { motion, MotionProps } from 'framer-motion';
 
 export default function HomePage() {
   const [ideas, setIdeas] = useState<any[]>([]);
@@ -34,8 +34,8 @@ export default function HomePage() {
     }
   };
 
-  // স্ক্রল অ্যানিমেশন কনফিগ
-  const fadeInUp = {
+  // স্ক্রল অ্যানিমেশন কনফিগ (Type safe)
+  const fadeInUp: MotionProps = {
     initial: { opacity: 0, y: 40 },
     whileInView: { opacity: 1, y: 0 },
     viewport: { once: true },
@@ -45,7 +45,7 @@ export default function HomePage() {
   return (
     <div className="bg-green-50/50 min-h-screen">
 
-      {/* Hero Section - Full Image Banner */}
+      {/* Hero Section */}
       <section className="relative bg-green-800 text-white py-28 px-6 text-center overflow-hidden min-h-[600px] flex items-center justify-center">
         <div className="absolute inset-0 z-0">
           <img 
@@ -90,38 +90,36 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats Section - আপনার দেওয়া সেই বড় বড় সংখ্যাগুলো এখানে */}
+      {/* Stats Section */}
       <motion.section 
-        {...fadeInUp}
+        initial={fadeInUp.initial}
+        whileInView={fadeInUp.whileInView}
+        viewport={fadeInUp.viewport}
+        transition={fadeInUp.transition}
         className="bg-green-100/50 py-16 px-6 border-y border-green-100"
       >
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <div className="p-4">
-            <div className="text-4xl mb-2">💡</div>
-            <div className="text-4xl font-extrabold text-green-700">200K+</div>
-            <div className="text-gray-600 font-medium">Ideas Shared</div>
-          </div>
-          <div className="p-4">
-            <div className="text-4xl mb-2">👥</div>
-            <div className="text-4xl font-extrabold text-green-700">50K+</div>
-            <div className="text-gray-600 font-medium">Active Members</div>
-          </div>
-          <div className="p-4">
-            <div className="text-4xl mb-2">🌍</div>
-            <div className="text-4xl font-extrabold text-green-700">120+</div>
-            <div className="text-gray-600 font-medium">Countries</div>
-          </div>
-          <div className="p-4">
-            <div className="text-4xl mb-2">♻️</div>
-            <div className="text-4xl font-extrabold text-green-700">80K+</div>
-            <div className="text-gray-600 font-medium">Ideas Approved</div>
-          </div>
+          {[
+            { icon: '💡', count: '200K+', label: 'Ideas Shared' },
+            { icon: '👥', count: '50K+', label: 'Active Members' },
+            { icon: '🌍', count: '120+', label: 'Countries' },
+            { icon: '♻️', count: '80K+', label: 'Ideas Approved' },
+          ].map((stat, i) => (
+            <div key={i} className="p-4">
+              <div className="text-4xl mb-2">{stat.icon}</div>
+              <div className="text-4xl font-extrabold text-green-700">{stat.count}</div>
+              <div className="text-gray-600 font-medium">{stat.label}</div>
+            </div>
+          ))}
         </div>
       </motion.section>
 
-      {/* Why EcoSpark Hub Section - Animated Cards */}
+      {/* Why EcoSpark Hub Section */}
       <motion.section 
-        {...fadeInUp}
+        initial={fadeInUp.initial}
+        whileInView={fadeInUp.whileInView}
+        viewport={fadeInUp.viewport}
+        transition={fadeInUp.transition}
         className="py-24 px-6 max-w-6xl mx-auto"
       >
         <h2 className="text-4xl font-extrabold text-center text-green-900 mb-16">Why EcoSpark Hub?</h2>
@@ -136,7 +134,7 @@ export default function HomePage() {
           ].map((f, i) => (
             <motion.div 
               key={i} 
-              whileHover={{ y: -12, shadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+              whileHover={{ y: -12, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
               className="bg-white p-10 rounded-3xl border border-green-50 shadow-sm text-center transition-all"
             >
               <div className="text-6xl mb-6">{f.icon}</div>
@@ -147,9 +145,12 @@ export default function HomePage() {
         </div>
       </motion.section>
 
-      {/* Featured Ideas Section - Animated */}
+      {/* Featured Ideas Section */}
       <motion.section 
-        {...fadeInUp}
+        initial={fadeInUp.initial}
+        whileInView={fadeInUp.whileInView}
+        viewport={fadeInUp.viewport}
+        transition={fadeInUp.transition}
         className="bg-green-50 py-24 px-6"
       >
         <div className="max-w-6xl mx-auto">
@@ -187,7 +188,7 @@ export default function HomePage() {
         </div>
       </motion.section>
 
-      {/* CTA Section - Smooth Fade In */}
+      {/* CTA Section */}
       <motion.section 
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
