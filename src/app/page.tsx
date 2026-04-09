@@ -34,16 +34,16 @@ export default function HomePage() {
   };
 
   const topIdeas = [...ideas]
-    .sort((a, b) => b.votes.length - a.votes.length)
+    .sort((a, b) => (b.votes?.length || 0) - (a.votes?.length || 0))
     .slice(0, 3);
 
   return (
     <div className="bg-gray-50">
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-green-800 via-green-700 to-emerald-600 text-white py-28 px-6 text-center overflow-hidden">
+      <section className="relative bg-gradient-to-br from-green-800 via-green-700 to-emerald-600 text-white py-20 md:py-28 px-6 text-center overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[url('/grid.svg')]"></div>
-        <div className="relative z-10 max-w-4xl mx-auto">
+        <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center">
           <div className="inline-block bg-green-600 text-green-100 text-sm px-4 py-1 rounded-full mb-4">
             🌍 Join 10,000+ Eco Warriors
           </div>
@@ -51,10 +51,21 @@ export default function HomePage() {
             Spark Change.<br />
             <span className="text-green-300">Save the Planet.</span>
           </h1>
+
+          {/* Banner Image - Added by your request */}
+          <div className="flex justify-center mb-8">
+            <img 
+              src="/eco-banner.png" 
+              alt="EcoSpark Illustration" 
+              className="w-full max-w-[300px] md:max-w-[400px] drop-shadow-2xl transition-transform hover:scale-105 duration-300"
+            />
+          </div>
+
           <p className="text-xl text-green-100 mb-10 max-w-2xl mx-auto">
             Share your sustainability ideas, inspire your community, and make a real difference for our environment.
           </p>
-          <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto mb-8">
+
+          <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto mb-8 w-full">
             <input
               type="text"
               placeholder="Search sustainability ideas..."
@@ -69,6 +80,7 @@ export default function HomePage() {
               Search
             </button>
           </form>
+
           <div className="flex justify-center gap-4 flex-wrap">
             <Link href="/ideas" className="bg-white text-green-700 px-8 py-3 rounded-full font-bold hover:bg-green-100 transition shadow">
               Browse Ideas 🌱
@@ -242,32 +254,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="bg-gray-50 py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-extrabold text-center text-gray-800 mb-4">What Our Community Says</h2>
-          <p className="text-center text-gray-500 mb-12">Real stories from real eco-warriors</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { name: 'Sarah K.', role: 'Environmental Engineer', text: 'EcoSpark Hub helped me share my solar energy project with thousands of people!', avatar: '👩‍💼' },
-              { name: 'Ahmed R.', role: 'Community Activist', text: 'The voting system helped my waste reduction idea get recognized by local authorities.', avatar: '👨‍💻' },
-              { name: 'Priya M.', role: 'Student', text: 'I found amazing inspiration here for my thesis on sustainable transportation.', avatar: '👩‍🎓' },
-            ].map((t, i) => (
-              <div key={i} className="bg-white p-6 rounded-2xl shadow hover:shadow-md transition">
-                <p className="text-gray-600 italic mb-4">"{t.text}"</p>
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">{t.avatar}</span>
-                  <div>
-                    <div className="font-bold text-gray-800">{t.name}</div>
-                    <div className="text-sm text-gray-500">{t.role}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="bg-gradient-to-r from-green-700 to-emerald-600 text-white py-20 px-6 text-center">
         <h2 className="text-4xl font-extrabold mb-4">Ready to Make a Difference? 🌍</h2>
@@ -294,8 +280,6 @@ export default function HomePage() {
           </button>
         </form>
       </section>
-
-    
     </div>
   );
 }
