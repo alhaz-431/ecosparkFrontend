@@ -7,13 +7,13 @@ import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const [role, setRole] = useState<'USER' | 'ADMIN'>('USER');
+  // ডাটাবেস অনুযায়ী 'USER' এর বদলে 'MEMBER' ব্যবহার করা হয়েছে
+  const [role, setRole] = useState<'MEMBER' | 'ADMIN'>('MEMBER');
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // অটো-ফিল শুধুমাত্র লগইন মোডে অ্যাডমিন সিলেক্ট করলে হবে
   useEffect(() => {
     if (role === 'ADMIN' && isLogin) {
       setForm((prev) => ({ ...prev, email: 'admin@ecospark.com', password: 'Admin123' }));
@@ -27,29 +27,26 @@ export default function LoginPage() {
     setLoading(true);
     try {
       if (isLogin) {
-        // লগইনের সময় ইমেইল, পাসওয়ার্ডের সাথে রোল (USER/ADMIN) পাঠাচ্ছি
         const res = await api.post('/auth/login', {
           email: form.email,
           password: form.password,
-          role: role, // এই ডাটাটি ব্যাকএন্ডে ভ্যালিডেশনের জন্য জরুরি
+          role: role, // এখন এটি 'MEMBER' অথবা 'ADMIN' পাঠাবে
         });
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
-        toast.success(`Logged in as ${role} successfully! 🎉`);
+        toast.success(`Logged in as ${role === 'MEMBER' ? 'User' : 'Admin'} successfully! 🎉`);
         router.push('/');
       } else {
-        // রেজিস্ট্রেশনের সময় রোলসহ পাঠানো হচ্ছে
         await api.post('/auth/register', {
           name: form.name,
           email: form.email,
           password: form.password,
           role: role,
         });
-        toast.success(`Registered as ${role} successfully! ✅`);
+        toast.success(`Registered as ${role === 'MEMBER' ? 'User' : 'Admin'} successfully! ✅`);
         setIsLogin(true);
       }
     } catch (err: any) {
-      // ব্যাকএন্ড থেকে আসা এরর মেসেজটি দেখাবে
       toast.error(err.response?.data?.message || 'Authentication failed ❌');
     } finally {
       setLoading(false);
@@ -69,11 +66,11 @@ export default function LoginPage() {
           <label className="flex items-center gap-2 cursor-pointer group">
             <input 
               type="radio" 
-              checked={role === 'USER'} 
-              onChange={() => setRole('USER')}
+              checked={role === 'MEMBER'} 
+              onChange={() => setRole('MEMBER')}
               className="w-4 h-4 accent-green-600 cursor-pointer"
             />
-            <span className={`text-sm font-bold transition-colors ${role === 'USER' ? 'text-green-700' : 'text-gray-400 group-hover:text-gray-600'}`}>
+            <span className={`text-sm font-bold transition-colors ${role === 'MEMBER' ? 'text-green-700' : 'text-gray-400 group-hover:text-gray-600'}`}>
               User
             </span>
           </label>
@@ -141,7 +138,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-green-700 text-white p-4 rounded-xl font-bold hover:bg-green-800 disabled:opacity-50 shadow-lg shadow-green-100 transition-all active:scale-95"
           >
-            {loading ? 'Processing...' : isLogin ? `Login as ${role}` : `Register as ${role}`}
+            {loading ? 'Processing...' : isLogin ? `Login as ${role === 'MEMBER' ? 'User' : 'Admin'}` : `Register as ${role === 'MEMBER' ? 'User' : 'Admin'}`}
           </button>
         </form>
 
