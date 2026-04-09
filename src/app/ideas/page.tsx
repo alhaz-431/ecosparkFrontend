@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
 
-// ১. ইন্টারফেসগুলো এখানে ঠিক করে দেওয়া হলো
+// ইন্টারফেসগুলো
 interface Category {
   id: string;
   name: string;
@@ -33,7 +33,7 @@ export default function IdeasPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // ক্যাটাগরি ফেচ করার ফাংশন
+  // ক্যাটাগরি ফেচ করা
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -46,7 +46,7 @@ export default function IdeasPage() {
     fetchCategories();
   }, []);
 
-  // ২. আইডিয়া ফেচ করার মেইন লজিক (সব এরর ফিক্সড)
+  // আইডিয়া ফেচ করার মেইন লজিক
   const fetchIdeas = useCallback(async () => {
     setLoading(true);
     try {
@@ -58,7 +58,6 @@ export default function IdeasPage() {
 
       const res = await api.get('/ideas', { params: queryParams });
       
-      // API রেসপন্স হ্যান্ডলিং
       const fetchedData = res.data.ideas || res.data || [];
       setIdeas(Array.isArray(fetchedData) ? fetchedData : []);
       setTotalPages(res.data.pagination?.totalPages || 1);
@@ -78,6 +77,12 @@ export default function IdeasPage() {
     e.preventDefault();
     setPage(1);
     fetchIdeas();
+  };
+
+  // পারচেজ হ্যান্ডলার (আপনি এখানে আপনার পেমেন্ট লজিক বসাবেন)
+  const handlePurchase = (ideaId: string) => {
+    alert(`Redirecting to purchase for idea ID: ${ideaId}`);
+    // api.post('/purchase', { ideaId })...
   };
 
   return (
@@ -114,9 +119,7 @@ export default function IdeasPage() {
                 >
                   <option value="">All Categories</option>
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.name}>
-                      {cat.name}
-                    </option>
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
               </div>
@@ -133,12 +136,6 @@ export default function IdeasPage() {
                   <option value="PAID">💰 Paid Only</option>
                 </select>
               </div>
-
-              <div className="bg-green-50 p-4 rounded-xl text-center">
-                <Link href="/dashboard/member" className="bg-green-700 text-white px-4 py-2 rounded-full text-xs hover:bg-green-800 transition block font-bold">
-                  Share Now 🌱
-                </Link>
-              </div>
             </div>
           </div>
         </aside>
@@ -147,42 +144,61 @@ export default function IdeasPage() {
         <main className="flex-1">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-80 bg-gray-200 animate-pulse rounded-3xl"></div>
-              ))}
+              {[1, 2, 3, 4].map(i => <div key={i} className="h-80 bg-gray-200 animate-pulse rounded-3xl"></div>)}
             </div>
           ) : ideas.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {ideas.map((idea) => (
-                <div key={idea.id} className="bg-white rounded-3xl shadow-sm border overflow-hidden hover:shadow-xl transition-all duration-300">
-                  <div className="h-48 bg-green-50 flex items-center justify-center overflow-hidden">
+                <div key={idea.id} className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden hover:shadow-2xl transition-all duration-500 group">
+                  <div className="h-56 bg-green-50 flex items-center justify-center overflow-hidden relative">
                     {idea.images?.[0] ? (
-                      <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                      <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     ) : (
-                      <span className="text-6xl">🌿</span>
+                      <span className="text-7xl">🌿</span>
                     )}
+                    <div className="absolute top-4 right-4">
+                       <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${idea.type === 'FREE' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}`}>
+                         {idea.type === 'FREE' ? 'FREE' : `৳${idea.price}`}
+                       </span>
+                    </div>
                   </div>
+                  
                   <div className="p-8">
-                    <span className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase tracking-wider">
-                      {idea.category?.name || 'Idea'}
+                    <span className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase tracking-tighter">
+                      {idea.category?.name || 'Sustainable'}
                     </span>
-                    <h3 className="text-xl font-bold text-gray-900 mt-4 line-clamp-1">{idea.title}</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mt-4 line-clamp-1">{idea.title}</h3>
                     <p className="text-gray-500 text-sm mt-3 line-clamp-2 leading-relaxed">{idea.description}</p>
-                    <Link href={`/ideas/${idea.id}`} className="mt-8 block text-center bg-green-700 text-white py-3.5 rounded-2xl font-bold hover:bg-green-800 transition-colors shadow-lg shadow-green-200/50">
-                      View Detail →
-                    </Link>
+                    
+                    {/* বাটনের সেকশন */}
+                    <div className="flex flex-col gap-3 mt-8">
+                      <Link href={`/ideas/${idea.id}`} className="block text-center bg-gray-100 text-gray-700 py-3.5 rounded-2xl font-bold hover:bg-gray-200 transition-all border border-gray-200">
+                        View Detail →
+                      </Link>
+
+                      {idea.type === 'PAID' && !idea.isPurchased && (
+                        <button 
+                          onClick={() => handlePurchase(idea.id)}
+                          className="block w-full bg-green-700 text-white py-4 rounded-2xl font-extrabold hover:bg-green-800 transition-all shadow-lg shadow-green-200"
+                        >
+                          🛒 Buy Now
+                        </button>
+                      )}
+
+                      {idea.isPurchased && (
+                        <div className="text-center py-3 rounded-2xl bg-blue-50 text-blue-700 font-bold border border-blue-100 flex items-center justify-center gap-2">
+                          ✅ Owned
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-32 bg-white rounded-[40px] border border-dashed border-gray-300">
-               <span className="text-7xl">🏜️</span>
-               <h3 className="text-2xl font-bold text-gray-800 mt-6">No ideas found!</h3>
-               <p className="text-gray-500 mt-3">Try adjusting your filters or search terms.</p>
-               <button onClick={() => {setCategory(''); setType(''); setSearch('');}} className="mt-8 text-green-700 font-bold hover:underline">
-                 Clear all filters
-               </button>
+            <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed">
+               <span className="text-6xl">🏜️</span>
+               <h3 className="text-xl font-bold mt-4">No ideas found!</h3>
             </div>
           )}
         </main>
