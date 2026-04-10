@@ -1,157 +1,208 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import api from '@/lib/axios';
-import toast from 'react-hot-toast';
-import { Eye, EyeOff } from 'lucide-react';
 
-export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true);
-  // ডাটাবেস অনুযায়ী 'USER' এর বদলে 'MEMBER' ব্যবহার করা হয়েছে
-  const [role, setRole] = useState<'MEMBER' | 'ADMIN'>('MEMBER');
-  const [showPassword, setShowPassword] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+// ১. ইন্টারফেসগুলো
+interface Category {
+  id: string;
+  name: string;
+}
 
+interface Idea {
+  id: string;
+  title: string;
+  description: string;
+  type: 'FREE' | 'PAID';
+  price?: number;
+  images: string[];
+  category?: { name: string };
+  isPurchased?: boolean;
+  votes?: { value: number }[];
+  createdAt: string;
+}
+
+export default function IdeasPage() {
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const [type, setType] = useState('');
+  const [sort, setSort] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // ক্যাটাগরি ফেচ করার ফাংশন
   useEffect(() => {
-    if (role === 'ADMIN' && isLogin) {
-      setForm((prev) => ({ ...prev, email: 'admin@ecospark.com', password: 'Admin123' }));
-    } else {
-      setForm((prev) => ({ ...prev, email: '', password: '' }));
-    }
-  }, [role, isLogin]);
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get('/categories');
+        setCategories(res.data || []);
+      } catch (error) {
+        console.error('Category Fetch Error:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // আইডিয়া ফেচ করার মেইন লজিক
+  const fetchIdeas = useCallback(async () => {
     setLoading(true);
     try {
-      if (isLogin) {
-        const res = await api.post('/auth/login', {
-          email: form.email,
-          password: form.password,
-          role: role, // এখন এটি 'MEMBER' অথবা 'ADMIN' পাঠাবে
-        });
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-        toast.success(`Logged in as ${role === 'MEMBER' ? 'User' : 'Admin'} successfully! 🎉`);
-        router.push('/');
-      } else {
-        await api.post('/auth/register', {
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          role: role,
-        });
-        toast.success(`Registered as ${role === 'MEMBER' ? 'User' : 'Admin'} successfully! ✅`);
-        setIsLogin(true);
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Authentication failed ❌');
+      const queryParams: any = { page };
+      if (search) queryParams.search = search;
+      if (category) queryParams.category = category;
+      if (type) queryParams.type = type;
+      if (sort) queryParams.sort = sort;
+
+      const res = await api.get('/ideas', { params: queryParams });
+      
+      const fetchedData = res.data.ideas || res.data || [];
+      setIdeas(Array.isArray(fetchedData) ? fetchedData : []);
+      setTotalPages(res.data.pagination?.totalPages || 1);
+    } catch (error) {
+      console.error('Fetch Error:', error);
+      setIdeas([]);
     } finally {
       setLoading(false);
     }
+  }, [page, category, type, sort, search]);
+
+  useEffect(() => {
+    fetchIdeas();
+  }, [fetchIdeas]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    fetchIdeas();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
-        <h2 className="text-3xl font-black text-green-700 mb-2 text-center">EcoSpark Hub</h2>
-        <p className="text-center text-gray-500 mb-8 text-sm">
-          {isLogin ? 'Welcome back! Please login' : 'Create an account to join us'}
-        </p>
-
-        {/* রেডিও বাটন সেকশন */}
-        <div className="flex justify-center items-center gap-8 mb-8 bg-gray-50 py-3 rounded-xl">
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <input 
-              type="radio" 
-              checked={role === 'MEMBER'} 
-              onChange={() => setRole('MEMBER')}
-              className="w-4 h-4 accent-green-600 cursor-pointer"
-            />
-            <span className={`text-sm font-bold transition-colors ${role === 'MEMBER' ? 'text-green-700' : 'text-gray-400 group-hover:text-gray-600'}`}>
-              User
-            </span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer group">
-            <input 
-              type="radio" 
-              checked={role === 'ADMIN'} 
-              onChange={() => setRole('ADMIN')}
-              className="w-4 h-4 accent-green-600 cursor-pointer"
-            />
-            <span className={`text-sm font-bold transition-colors ${role === 'ADMIN' ? 'text-green-700' : 'text-gray-400 group-hover:text-gray-600'}`}>
-              Admin
-            </span>
-          </label>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {!isLogin && (
-            <div>
-              <label className="text-xs font-bold text-gray-400 ml-1 uppercase">Full Name</label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-green-500"
-                required
-              />
-            </div>
-          )}
-          
-          <div>
-            <label className="text-xs font-bold text-gray-400 ml-1 uppercase">Email Address</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-green-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-400 ml-1 uppercase">Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full border-2 border-gray-100 p-3 rounded-xl focus:outline-none focus:border-green-500"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-600"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-green-700 text-white p-4 rounded-xl font-bold hover:bg-green-800 disabled:opacity-50 shadow-lg shadow-green-100 transition-all active:scale-95"
-          >
-            {loading ? 'Processing...' : isLogin ? `Login as ${role === 'MEMBER' ? 'User' : 'Admin'}` : `Register as ${role === 'MEMBER' ? 'User' : 'Admin'}`}
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Search Section */}
+      <section className="bg-gradient-to-br from-green-800 to-emerald-600 py-16 px-6 text-center text-white">
+        <h1 className="text-4xl font-extrabold mb-4">🌱 All Sustainability Ideas</h1>
+        <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto">
+          <input
+            type="text"
+            placeholder="Search ideas..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 p-4 rounded-xl text-gray-800 focus:outline-none shadow-lg"
+          />
+          <button type="submit" className="bg-white text-green-700 px-8 py-4 rounded-xl font-bold hover:bg-green-50 shadow-md">
+            Search
           </button>
         </form>
+      </section>
 
-        <p className="text-center mt-8 text-sm text-gray-500">
-          {isLogin ? "Don't have an account? " : 'Already have an account? '}
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-green-700 font-bold hover:underline ml-1"
-          >
-            {isLogin ? 'Register' : 'Login'}
-          </button>
-        </p>
+      <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8">
+        {/* Sidebar Filters */}
+        <aside className="w-full lg:w-64 flex-shrink-0">
+          <div className="bg-white rounded-2xl shadow p-6 sticky top-24 border">
+            <h3 className="font-bold text-gray-800 mb-4 text-lg">🔍 Filters</h3>
+            <div className="space-y-5">
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white cursor-pointer"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">Type</label>
+                <select
+                  value={type}
+                  onChange={(e) => { setType(e.target.value); setPage(1); }}
+                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white cursor-pointer"
+                >
+                  <option value="">Free & Paid</option>
+                  <option value="FREE">🆓 Free Only</option>
+                  <option value="PAID">💰 Paid Only</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Ideas Grid */}
+        <main className="flex-1">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {[1, 2, 3, 4].map(i => <div key={i} className="h-[450px] bg-gray-200 animate-pulse rounded-[2.5rem]"></div>)}
+            </div>
+          ) : ideas.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {ideas.map((idea) => (
+                <div key={idea.id} className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden hover:shadow-2xl transition-all duration-500 group flex flex-col">
+                  {/* Image Section */}
+                  <div className="h-56 bg-green-50 flex items-center justify-center overflow-hidden relative">
+                    {idea.images?.[0] ? (
+                      <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    ) : (
+                      <span className="text-7xl">🌿</span>
+                    )}
+                    {/* Price Tag */}
+                    <div className="absolute top-4 right-4">
+                       <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${idea.type === 'FREE' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}`}>
+                         {idea.type === 'FREE' ? 'FREE' : `৳${idea.price}`}
+                       </span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-8 flex-1 flex flex-col">
+                    <span className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase self-start">
+                      {idea.category?.name || 'Sustainable'}
+                    </span>
+                    <h3 className="text-2xl font-bold text-gray-900 mt-4 line-clamp-1">{idea.title}</h3>
+                    <p className="text-gray-500 text-sm mt-3 line-clamp-2 leading-relaxed flex-1">{idea.description}</p>
+                    
+                    {/* বাটন সেকশন - এখানে পাথ ফিক্স করা হয়েছে */}
+                    <div className="flex flex-col gap-3 mt-8">
+                      <Link 
+                        href={`/ideas/${idea.id}`} 
+                        className="block text-center bg-gray-100 text-gray-700 py-3.5 rounded-2xl font-bold hover:bg-gray-200 transition-all border border-gray-200"
+                      >
+                        View Detail →
+                      </Link>
+
+                      {/* পাথ পরিবর্তন: /ideas/${idea.id}/purchase */}
+                      {idea.type === 'PAID' && !idea.isPurchased && (
+                        <Link 
+                          href={`/ideas/${idea.id}/purchase`} 
+                          className="block w-full text-center bg-green-700 text-white py-4 rounded-2xl font-extrabold hover:bg-green-800 transition-all shadow-lg shadow-green-200"
+                        >
+                          🛒 Buy Now
+                        </Link>
+                      )}
+
+                      {/* কেনা থাকলে Owned দেখাবে */}
+                      {idea.isPurchased && (
+                        <div className="text-center py-3.5 rounded-2xl bg-blue-50 text-blue-700 font-bold border border-blue-100 flex items-center justify-center gap-2">
+                          ✅ Owned
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-200">
+               <span className="text-6xl text-gray-300">🏜️</span>
+               <h3 className="text-xl font-bold mt-4 text-gray-400">No ideas found matching filters</h3>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
