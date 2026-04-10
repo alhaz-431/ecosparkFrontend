@@ -164,9 +164,9 @@ export default function IdeasPage() {
                     <h3 className="text-2xl font-bold text-gray-900 mt-4 line-clamp-1">{idea.title}</h3>
                     <p className="text-gray-500 text-sm mt-3 line-clamp-2 leading-relaxed flex-1">{idea.description}</p>
                     
-                    {/* বাটনের সেকশন - পাথগুলো ছোট হাতের ideas দিয়ে সেট করা হয়েছে */}
+                    {/* --- বাটন সেকশন শুরু --- */}
                     <div className="flex flex-col gap-3 mt-8">
-                      {/* View Detail Link */}
+                      {/* View Detail Link: ছোট হাতের ideas এবং শুরুতে / দেওয়া হয়েছে */}
                       <Link 
                         href={`/ideas/${idea.id}`} 
                         className="block text-center bg-gray-100 text-gray-700 py-3.5 rounded-2xl font-bold hover:bg-gray-200 transition-all border border-gray-200"
@@ -174,7 +174,7 @@ export default function IdeasPage() {
                         View Detail →
                       </Link>
 
-                      {/* Buy Now Link: আপনার ideas/[id]/purchase ফোল্ডার অনুযায়ী */}
+                      {/* Buy Now Link: /ideas/${idea.id}/purchase পাথ ব্যবহার করা হয়েছে */}
                       {idea.type === 'PAID' && !idea.isPurchased && (
                         <Link 
                           href={`/ideas/${idea.id}/purchase`} 
@@ -191,6 +191,7 @@ export default function IdeasPage() {
                         </div>
                       )}
                     </div>
+                    {/* --- বাটন সেকশন শেষ --- */}
                   </div>
                 </div>
               ))}
