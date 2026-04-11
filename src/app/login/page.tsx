@@ -7,7 +7,7 @@ import api from '@/lib/axios';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('MEMBER'); // আপনার স্কিমা অনুযায়ী ডিফল্ট MEMBER
+  const [role, setRole] = useState('MEMBER'); 
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -15,7 +15,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      // ইমেইল, পাসওয়ার্ড এবং রোল তিনটিই ব্যাকএন্ডে পাঠানো হচ্ছে
       const res = await api.post('/auth/login', { email, password, role });
       
       localStorage.setItem('token', res.data.token);
@@ -23,12 +22,9 @@ export default function LoginPage() {
 
       alert('Login Successful!');
 
-      // রোল অনুযায়ী ড্যাশবোর্ডে রিডাইরেক্ট
-      if (res.data.user.role === 'ADMIN') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/dashboard');
-      }
+      // এখানে পরিবর্তন করা হয়েছে: সরাসরি হোম পেজে রিডাইরেক্ট হবে
+      router.push('/'); 
+      
     } catch (error: any) {
       console.error('Login Error:', error);
       alert(error.response?.data?.message || 'Login failed! Please check your credentials.');
@@ -70,7 +66,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* রোল সিলেকশন রেডিও বাটন */}
           <div className="bg-green-50/50 p-4 rounded-2xl border border-green-100">
             <p className="text-xs font-bold text-green-800 mb-3 text-center uppercase tracking-wider">Login As:</p>
             <div className="flex gap-8 justify-center">
