@@ -1,207 +1,91 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/axios';
-
-// ১. ইন্টারফেসগুলো ঠিক করে দেওয়া হলো
-interface Category {
-  id: string;
-  name: string;
-}
+import Link from 'next/link';
 
 interface Idea {
   id: string;
   title: string;
-  description: string;
-  type: 'FREE' | 'PAID';
-  price?: number;
-  images: string[];
-  category?: { name: string };
-  isPurchased?: boolean;
-  votes?: { value: number }[];
-  createdAt: string;
+  price: number;
+  type: string;
 }
 
-export default function IdeasPage() {
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+export default function PurchasePage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const [idea, setIdea] = useState<Idea | null>(null);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
-  const [type, setType] = useState('');
-  const [sort, setSort] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [purchasing, setPurchasing] = useState(false);
 
-  // ক্যাটাগরি ফেচ করার ফাংশন
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchIdea = async () => {
       try {
-        const res = await api.get('/categories');
-        setCategories(res.data || []);
+        const res = await api.get(`/ideas/${id}`);
+        setIdea(res.data);
       } catch (error) {
-        console.error('Category Fetch Error:', error);
+        console.error('Error fetching idea for purchase:', error);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchCategories();
-  }, []);
+    if (id) fetchIdea();
+  }, [id]);
 
-  // আইডিয়া ফেচ করার মেইন লজিক
-  const fetchIdeas = useCallback(async () => {
-    setLoading(true);
+  const handlePurchase = async () => {
+    setPurchasing(true);
     try {
-      const queryParams: any = { page };
-      if (search) queryParams.search = search;
-      if (category) queryParams.category = category;
-      if (type) queryParams.type = type;
-      if (sort) queryParams.sort = sort;
-
-      const res = await api.get('/ideas', { params: queryParams });
-      
-      const fetchedData = res.data.ideas || res.data || [];
-      setIdeas(Array.isArray(fetchedData) ? fetchedData : []);
-      setTotalPages(res.data.pagination?.totalPages || 1);
-    } catch (error) {
-      console.error('Fetch Error:', error);
-      setIdeas([]);
+      // আপনার ব্যাকএন্ডে পারচেজ করার API এন্ডপয়েন্ট এখানে হবে
+      await api.post(`/ideas/${id}/purchase`);
+      alert('Purchase Successful!');
+      router.push(`/ideas/${id}`); // কেনা হয়ে গেলে ডিটেইল পেজে ফেরত পাঠাবে
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Payment Failed. Please try again.');
     } finally {
-      setLoading(false);
+      setPurchasing(false);
     }
-  }, [page, category, type, sort, search]);
-
-  useEffect(() => {
-    fetchIdeas();
-  }, [fetchIdeas]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    fetchIdeas();
   };
 
+  if (loading) return <div className="text-center py-20 font-bold">Loading Payment Details...</div>;
+  if (!idea) return <div className="text-center py-20 font-bold">Idea not found!</div>;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Search Section */}
-      <section className="bg-gradient-to-br from-green-800 to-emerald-600 py-16 px-6 text-center text-white">
-        <h1 className="text-4xl font-extrabold mb-4">🌱 All Sustainability Ideas</h1>
-        <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto">
-          <input
-            type="text"
-            placeholder="Search ideas..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 p-4 rounded-xl text-gray-800 focus:outline-none shadow-lg"
-          />
-          <button type="submit" className="bg-white text-green-700 px-8 py-4 rounded-xl font-bold hover:bg-green-50 shadow-md">
-            Search
-          </button>
-        </form>
-      </section>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-10 border border-green-100">
+        <h2 className="text-3xl font-black text-gray-900 text-center mb-2">Secure Checkout 🔒</h2>
+        <p className="text-gray-500 text-center mb-8">You are purchasing access to:</p>
 
-      <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8">
-        {/* Sidebar Filters */}
-        <aside className="w-full lg:w-64 flex-shrink-0">
-          <div className="bg-white rounded-2xl shadow p-6 sticky top-24 border">
-            <h3 className="font-bold text-gray-800 mb-4 text-lg">🔍 Filters</h3>
-            <div className="space-y-5">
-              <div>
-                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white"
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">Type</label>
-                <select
-                  value={type}
-                  onChange={(e) => { setType(e.target.value); setPage(1); }}
-                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white"
-                >
-                  <option value="">Free & Paid</option>
-                  <option value="FREE">🆓 Free Only</option>
-                  <option value="PAID">💰 Paid Only</option>
-                </select>
-              </div>
-            </div>
+        <div className="bg-green-50 p-6 rounded-3xl mb-8 border border-green-100">
+          <h3 className="font-bold text-xl text-green-800 line-clamp-2">{idea.title}</h3>
+          <div className="mt-4 flex justify-between items-center">
+            <span className="text-gray-500 font-medium">Price to pay:</span>
+            <span className="text-3xl font-black text-gray-900">৳{idea.price}</span>
           </div>
-        </aside>
+        </div>
 
-        {/* Ideas Grid */}
-        <main className="flex-1">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[1, 2, 3, 4].map(i => <div key={i} className="h-[450px] bg-gray-200 animate-pulse rounded-[2.5rem]"></div>)}
-            </div>
-          ) : ideas.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {ideas.map((idea) => (
-                <div key={idea.id} className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col">
-                  {/* Image Section */}
-                  <div className="h-56 bg-green-50 flex items-center justify-center overflow-hidden relative">
-                    {idea.images?.[0] ? (
-                      <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-7xl">🌿</span>
-                    )}
-                    {/* Price Tag */}
-                    <div className="absolute top-4 right-4">
-                       <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${idea.type === 'FREE' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}`}>
-                         {idea.type === 'FREE' ? 'FREE' : `৳${idea.price}`}
-                       </span>
-                    </div>
-                  </div>
-                  
-                  <div className="p-8 flex-1 flex flex-col">
-                    <span className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase self-start">
-                      {idea.category?.name || 'Sustainable'}
-                    </span>
-                    <h3 className="text-2xl font-bold text-gray-900 mt-4 line-clamp-1">{idea.title}</h3>
-                    <p className="text-gray-500 text-sm mt-3 line-clamp-2 leading-relaxed flex-1">{idea.description}</p>
-                    
-                    {/* আপনি যে বাটন সেকশনটি চেয়েছিলেন */}
-                    <div className="flex flex-col gap-3 mt-8">
-                      <Link href={`/ideas/${idea.id}`} className="block text-center bg-gray-100 text-gray-700 py-3.5 rounded-2xl font-bold hover:bg-gray-200 transition-all border border-gray-200">
-                        View Detail →
-                      </Link>
+        <div className="space-y-4">
+          <button
+            onClick={handlePurchase}
+            disabled={purchasing}
+            className="w-full bg-green-700 text-white py-5 rounded-2xl font-black text-lg hover:bg-green-800 transition-all shadow-lg shadow-green-200 disabled:opacity-50"
+          >
+            {purchasing ? 'Processing...' : 'Confirm & Pay Now'}
+          </button>
+          
+          <Link 
+            href={`/ideas/${id}`}
+            className="block text-center text-gray-400 font-bold hover:text-gray-600 transition-all"
+          >
+            Cancel Transaction
+          </Link>
+        </div>
 
-                      {/* Buy Now বাটনটি এখন আপনার পেমেন্ট পেজে যাবে */}
-                      {idea.type === 'PAID' && !idea.isPurchased && (
-                        <Link 
-                          href={`/purchase/${idea.id}`} 
-                          className="block w-full text-center bg-green-700 text-white py-4 rounded-2xl font-extrabold hover:bg-green-800 transition-all shadow-lg shadow-green-200"
-                        >
-                          🛒 Buy Now
-                        </Link>
-                      )}
-
-                      {/* কেনা থাকলে Owned দেখাবে */}
-                      {idea.isPurchased && (
-                        <div className="text-center py-3.5 rounded-2xl bg-blue-50 text-blue-700 font-bold border border-blue-100 flex items-center justify-center gap-2">
-                          ✅ Owned
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed">
-               <span className="text-6xl text-gray-300">🏜️</span>
-               <h3 className="text-xl font-bold mt-4 text-gray-400">No ideas found matching filters</h3>
-            </div>
-          )}
-        </main>
+        <div className="mt-8 text-center">
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
+            Guaranteed safe checkout with SSL encryption
+          </p>
+        </div>
       </div>
     </div>
   );
 }
-

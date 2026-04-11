@@ -1,14 +1,10 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/axios';
 
-// ইন্টারফেসগুলো
-interface Category {
-  id: string;
-  name: string;
-}
-
+// ইন্টারফেস
 interface Idea {
   id: string;
   title: string;
@@ -18,185 +14,99 @@ interface Idea {
   images: string[];
   category?: { name: string };
   isPurchased?: boolean;
-  votes?: { value: number }[];
-  createdAt: string;
 }
 
-export default function IdeasPage() {
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+export default function IdeaDetailsPage() {
+  const { id } = useParams(); // ইউআরএল থেকে আইডি নিচ্ছে
+  const [idea, setIdea] = useState<Idea | null>(null);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
-  const [type, setType] = useState('');
-  const [sort, setSort] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
-  // ক্যাটাগরি ফেচ করা
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchIdeaDetails = async () => {
       try {
-        const res = await api.get('/categories');
-        setCategories(res.data || []);
+        const res = await api.get(`/ideas/${id}`); // একটি নির্দিষ্ট আইডিয়া ফেচ করছে
+        setIdea(res.data);
       } catch (error) {
-        console.error('Category Fetch Error:', error);
+        console.error('Details Fetch Error:', error);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchCategories();
-  }, []);
+    if (id) fetchIdeaDetails();
+  }, [id]);
 
-  // আইডিয়া ফেচ করার মেইন লজিক
-  const fetchIdeas = useCallback(async () => {
-    setLoading(true);
-    try {
-      const queryParams: any = { page };
-      if (search) queryParams.search = search;
-      if (category) queryParams.category = category;
-      if (type) queryParams.type = type;
-      if (sort) queryParams.sort = sort;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+    </div>
+  );
 
-      const res = await api.get('/ideas', { params: queryParams });
-      const fetchedData = res.data.ideas || res.data || [];
-      setIdeas(Array.isArray(fetchedData) ? fetchedData : []);
-      setTotalPages(res.data.pagination?.totalPages || 1);
-    } catch (error) {
-      console.error('Fetch Error:', error);
-      setIdeas([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, category, type, sort, search]);
-
-  useEffect(() => {
-    fetchIdeas();
-  }, [fetchIdeas]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    fetchIdeas();
-  };
+  if (!idea) return (
+    <div className="text-center py-20">
+      <h2 className="text-2xl font-bold text-gray-400">Idea not found!</h2>
+      <Link href="/ideas" className="text-green-600 underline mt-4 block">Back to All Ideas</Link>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-green-800 to-emerald-600 py-16 px-6 text-center text-white">
-        <h1 className="text-4xl font-extrabold mb-4">🌱 All Sustainability Ideas</h1>
-        <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto">
-          <input
-            type="text"
-            placeholder="Search ideas..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 p-4 rounded-xl text-gray-800 focus:outline-none shadow-lg"
-          />
-          <button type="submit" className="bg-white text-green-700 px-8 py-4 rounded-xl font-bold hover:bg-green-50 shadow-md transition-all">
-            Search
-          </button>
-        </form>
-      </section>
+    <div className="min-h-screen bg-gray-50 py-12 px-6">
+      <div className="max-w-5xl mx-auto bg-white rounded-[3rem] shadow-sm border overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2">
+          
+          {/* ইমেজ সেকশন */}
+          <div className="h-[400px] lg:h-auto bg-green-50">
+            {idea.images?.[0] ? (
+              <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-8xl">🌿</div>
+            )}
+          </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8">
-        {/* Sidebar Filters */}
-        <aside className="w-full lg:w-64 flex-shrink-0">
-          <div className="bg-white rounded-2xl shadow p-6 sticky top-24 border">
-            <h3 className="font-bold text-gray-800 mb-4 text-lg">🔍 Filters</h3>
-            <div className="space-y-5">
-              <div>
-                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white cursor-pointer"
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                </select>
+          {/* টেক্সট সেকশন */}
+          <div className="p-10 lg:p-16 flex flex-col">
+            <span className="text-xs font-black text-green-600 bg-green-50 px-4 py-1.5 rounded-full uppercase self-start">
+              {idea.category?.name || 'Sustainability'}
+            </span>
+            
+            <h1 className="text-4xl font-black text-gray-900 mt-6 leading-tight">{idea.title}</h1>
+            <p className="text-gray-500 mt-6 text-lg leading-relaxed flex-1">{idea.description}</p>
+
+            <div className="mt-10 pt-10 border-t flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 font-bold uppercase tracking-widest text-sm">Price</span>
+                <span className="text-3xl font-black text-gray-900">
+                  {idea.type === 'FREE' ? 'FREE' : `৳${idea.price}`}
+                </span>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">Type</label>
-                <select
-                  value={type}
-                  onChange={(e) => { setType(e.target.value); setPage(1); }}
-                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white cursor-pointer"
-                >
-                  <option value="">Free & Paid</option>
-                  <option value="FREE">🆓 Free Only</option>
-                  <option value="PAID">💰 Paid Only</option>
-                </select>
+              {/* বাটনগুলো */}
+              <div className="grid grid-cols-2 gap-4">
+                <Link href="/ideas" className="text-center py-4 bg-gray-100 text-gray-700 rounded-2xl font-bold hover:bg-gray-200 transition-all">
+                  ← Back
+                </Link>
+
+                {idea.type === 'PAID' && !idea.isPurchased ? (
+                  <Link 
+                    href={`/ideas/${id}/purchase`} 
+                    className="text-center py-4 bg-green-700 text-white rounded-2xl font-extrabold hover:bg-green-800 shadow-xl shadow-green-100 transition-all"
+                  >
+                    Buy Now 🛒
+                  </Link>
+                ) : idea.isPurchased ? (
+                  <div className="text-center py-4 bg-blue-50 text-blue-700 rounded-2xl font-bold border border-blue-100">
+                    ✅ Owned
+                  </div>
+                ) : (
+                  <div className="text-center py-4 bg-green-50 text-green-700 rounded-2xl font-bold">
+                    🆓 Free Access
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </aside>
 
-        {/* Main Ideas Grid */}
-        <main className="flex-1">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[1, 2, 3, 4].map(i => <div key={i} className="h-[400px] bg-gray-200 animate-pulse rounded-[2rem]"></div>)}
-            </div>
-          ) : ideas.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {ideas.map((idea) => (
-                <div key={idea.id} className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col group">
-                  <div className="h-52 bg-green-50 flex items-center justify-center overflow-hidden relative">
-                    {idea.images?.[0] ? (
-                      <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <span className="text-6xl">🌿</span>
-                    )}
-                    <div className="absolute top-4 right-4">
-                       <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${idea.type === 'FREE' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}`}>
-                         {idea.type === 'FREE' ? 'FREE' : `৳${idea.price}`}
-                       </span>
-                    </div>
-                  </div>
-                  
-                  <div className="p-8 flex-1 flex flex-col">
-                    <span className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase self-start">
-                      {idea.category?.name || 'Idea'}
-                    </span>
-                    <h3 className="text-2xl font-bold text-gray-900 mt-4 line-clamp-1">{idea.title}</h3>
-                    <p className="text-gray-500 text-sm mt-3 line-clamp-2 leading-relaxed flex-1">{idea.description}</p>
-                    
-                    {/* বাটন সেকশন - এখানে onClick সরানো হয়েছে */}
-                    <div className="flex flex-col gap-3 mt-8">
-                      <Link href={`/ideas/${idea.id}`} className="block text-center bg-gray-50 text-gray-700 py-3.5 rounded-2xl font-bold hover:bg-gray-100 transition-all border border-gray-100">
-                        View Detail →
-                      </Link>
-
-                      {idea.type === 'PAID' && !idea.isPurchased && (
-                        <Link 
-                          href={`/purchase/${idea.id}`} 
-                          className="block w-full text-center bg-green-700 text-white py-4 rounded-2xl font-extrabold hover:bg-green-800 transition-all shadow-lg shadow-green-200"
-                        >
-                          🛒 Buy Now
-                        </Link>
-                      )}
-
-                      {idea.isPurchased && (
-                        <div className="text-center py-3.5 rounded-2xl bg-blue-50 text-blue-700 font-bold border border-blue-100 flex items-center justify-center gap-2">
-                          ✅ Owned
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20 bg-white rounded-[3rem] border border-dashed border-gray-300">
-               <span className="text-6xl">🏜️</span>
-               <h3 className="text-xl font-bold mt-4 text-gray-400">No ideas found!</h3>
-            </div>
-          )}
-        </main>
+        </div>
       </div>
     </div>
   );
 }
-
