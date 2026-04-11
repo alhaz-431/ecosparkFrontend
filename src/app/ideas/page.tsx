@@ -1,30 +1,10 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
 
-// ইন্টারফেসগুলো
-interface Category {
-  id: string;
-  name: string;
-}
-
-interface Idea {
-  id: string;
-  title: string;
-  description: string;
-  type: 'FREE' | 'PAID';
-  price?: number;
-  images: string[];
-  category?: { name: string };
-  isPurchased?: boolean;
-  votes?: { value: number }[];
-  createdAt: string;
-}
-
 export default function IdeasPage() {
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [ideas, setIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
@@ -33,45 +13,28 @@ export default function IdeasPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // ক্যাটাগরি ফেচ করা
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await api.get('/categories');
-        setCategories(res.data || []);
-      } catch (error) {
-        console.error('Category Fetch Error:', error);
-      }
-    };
-    fetchCategories();
-  }, []);
+    fetchIdeas();
+  }, [page, category, type, sort]);
 
-  // আইডিয়া ফেচ করার মেইন লজিক
-  const fetchIdeas = useCallback(async () => {
+  const fetchIdeas = async () => {
     setLoading(true);
     try {
-      const queryParams: any = { page };
-      if (search) queryParams.search = search;
-      if (category) queryParams.category = category;
-      if (type) queryParams.type = type;
-      if (sort) queryParams.sort = sort;
-
-      const res = await api.get('/ideas', { params: queryParams });
-      
-      const fetchedData = res.data.ideas || res.data || [];
-      setIdeas(Array.isArray(fetchedData) ? fetchedData : []);
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (category) params.append('category', category);
+      if (type) params.append('type', type);
+      if (sort) params.append('sort', sort);
+      params.append('page', page.toString());
+      const res = await api.get(`/ideas?${params.toString()}`);
+      setIdeas(res.data.ideas || []);
       setTotalPages(res.data.pagination?.totalPages || 1);
     } catch (error) {
       console.error('Fetch Error:', error);
-      setIdeas([]);
     } finally {
       setLoading(false);
     }
-  }, [page, category, type, sort, search]);
-
-  useEffect(() => {
-    fetchIdeas();
-  }, [fetchIdeas]);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,127 +43,187 @@ export default function IdeasPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Hero Section */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <section className="bg-gradient-to-br from-green-800 to-emerald-600 py-16 px-6 text-center text-white">
         <h1 className="text-4xl font-extrabold mb-4">🌱 All Sustainability Ideas</h1>
+        <p className="text-green-100 text-lg mb-8">Browse, vote and get inspired by community ideas</p>
         <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto">
           <input
             type="text"
-            placeholder="Search ideas..."
+            placeholder="Search ideas by title or keyword..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 p-4 rounded-xl text-gray-800 focus:outline-none shadow-lg"
           />
-          <button type="submit" className="bg-white text-green-700 px-8 py-4 rounded-xl font-bold hover:bg-green-50 shadow-md">
+          <button type="submit" className="bg-white text-green-700 px-8 py-4 rounded-xl font-bold hover:bg-green-50 transition">
             Search
           </button>
         </form>
       </section>
 
       <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8">
-        {/* Sidebar Filters */}
+        {/* Sidebar */}
         <aside className="w-full lg:w-64 flex-shrink-0">
           <div className="bg-white rounded-2xl shadow p-6 sticky top-24 border">
-            <h3 className="font-bold text-gray-800 mb-4 text-lg">🔍 Filters</h3>
+            <h3 className="font-bold text-gray-800 mb-4">🔍 Filters</h3>
             <div className="space-y-5">
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">Category</label>
+                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Category</label>
                 <select
                   value={category}
                   onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white cursor-pointer"
+                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none"
                 >
                   <option value="">All Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
+                  <option value="Energy">⚡ Energy</option>
+                  <option value="Waste">♻️ Waste</option>
+                  <option value="Transportation">🚗 Transportation</option>
+                  <option value="Water">💧 Water</option>
                 </select>
               </div>
-
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">Type</label>
+                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Type</label>
                 <select
                   value={type}
                   onChange={(e) => { setType(e.target.value); setPage(1); }}
-                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white cursor-pointer"
+                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none"
                 >
                   <option value="">Free & Paid</option>
                   <option value="FREE">🆓 Free Only</option>
                   <option value="PAID">💰 Paid Only</option>
                 </select>
               </div>
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Sort By</label>
+                <select
+                  value={sort}
+                  onChange={(e) => { setSort(e.target.value); setPage(1); }}
+                  className="w-full border p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                >
+                  <option value="">Latest First</option>
+                  <option value="top">🏆 Top Voted</option>
+                </select>
+              </div>
+              {(category || type || sort) && (
+                <button
+                  onClick={() => { setCategory(''); setType(''); setSort(''); setPage(1); }}
+                  className="w-full text-red-500 text-sm hover:underline text-left"
+                >
+                  ✕ Clear Filters
+                </button>
+              )}
+              <hr className="my-4" />
+              <div className="bg-green-50 p-4 rounded-xl text-center">
+                <p className="text-green-700 font-bold text-sm mb-2">Have an idea?</p>
+                <Link href="/dashboard/member" className="bg-green-700 text-white px-4 py-2 rounded-full text-sm hover:bg-green-800 transition block">
+                  Share Now 🌱
+                </Link>
+              </div>
             </div>
           </div>
         </aside>
 
-        {/* Main Content Area */}
+        {/* Main Content */}
         <main className="flex-1">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[1, 2, 3, 4].map(i => <div key={i} className="h-80 bg-gray-200 animate-pulse rounded-3xl"></div>)}
-            </div>
-          ) : ideas.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {ideas.map((idea) => (
-                <div key={idea.id} className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden hover:shadow-2xl transition-all duration-500 group flex flex-col">
-                  <div className="h-56 bg-green-50 flex items-center justify-center overflow-hidden relative">
-                    {idea.images?.[0] ? (
-                      <img src={idea.images[0]} alt={idea.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                    ) : (
-                      <span className="text-7xl">🌿</span>
-                    )}
-                    <div className="absolute top-4 right-4">
-                       <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${idea.type === 'FREE' ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}`}>
-                         {idea.type === 'FREE' ? 'FREE' : `৳${idea.price}`}
-                       </span>
-                    </div>
-                  </div>
-                  
-                  <div className="p-8 flex-1 flex flex-col">
-                    <span className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase tracking-tighter self-start">
-                      {idea.category?.name || 'Sustainable'}
-                    </span>
-                    <h3 className="text-2xl font-bold text-gray-900 mt-4 line-clamp-1">{idea.title}</h3>
-                    <p className="text-gray-500 text-sm mt-3 line-clamp-2 leading-relaxed flex-1">{idea.description}</p>
-                    
-                    {/* --- বাটন সেকশন শুরু --- */}
-                    <div className="flex flex-col gap-3 mt-8">
-                      {/* View Detail Link: ছোট হাতের ideas এবং শুরুতে / দেওয়া হয়েছে */}
-                      <Link 
-                        href={`/ideas/${idea.id}`} 
-                        className="block text-center bg-gray-100 text-gray-700 py-3.5 rounded-2xl font-bold hover:bg-gray-200 transition-all border border-gray-200"
-                      >
-                        View Detail →
-                      </Link>
-
-                      {/* Buy Now Link: /ideas/${idea.id}/purchase পাথ ব্যবহার করা হয়েছে */}
-                      {idea.type === 'PAID' && !idea.isPurchased && (
-                        <Link 
-                          href={`/ideas/${idea.id}/purchase`} 
-                          className="block w-full text-center bg-green-700 text-white py-4 rounded-2xl font-extrabold hover:bg-green-800 transition-all shadow-lg shadow-green-200"
-                        >
-                          🛒 Buy Now
-                        </Link>
-                      )}
-
-                      {/* কেনা থাকলে Owned দেখাবে */}
-                      {idea.isPurchased && (
-                        <div className="text-center py-3.5 rounded-2xl bg-blue-50 text-blue-700 font-bold border border-blue-100 flex items-center justify-center gap-2">
-                          ✅ Owned
-                        </div>
-                      )}
-                    </div>
-                    {/* --- বাটন সেকশন শেষ --- */}
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-80 bg-gray-200 rounded-3xl"></div>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-200">
-               <span className="text-6xl">🏜️</span>
-               <h3 className="text-xl font-bold mt-4 text-gray-400">No ideas found!</h3>
+          ) : ideas.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-3xl border shadow-sm">
+              <div className="text-6xl mb-4">🌿</div>
+              <p className="text-gray-500 text-lg">No ideas found.</p>
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {ideas.map((idea) => (
+                  <div key={idea.id} className="bg-white rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col border">
+                    {/* Image */}
+                    <div className="relative h-48 bg-slate-200 overflow-hidden">
+                      <img
+                        src={idea.images?.[0] || '/images/default-idea.jpg'}
+                        alt={idea.title}
+                        className="w-full h-full object-cover transition-transform hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '';
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute top-3 right-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase shadow-sm ${
+                          idea.type === 'PAID' ? 'bg-orange-500 text-white' : 'bg-green-500 text-white'
+                        }`}>
+                          {idea.type === 'PAID' ? `💰 $${idea.price}` : '🆓 Free'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-5 flex-1 flex flex-col">
+                      <p className="text-xs font-bold text-emerald-600 mb-1 uppercase">{idea.category?.name}</p>
+                      <h3 className="font-bold text-lg text-gray-800 line-clamp-1 mb-2">{idea.title}</h3>
+                      <p className="text-gray-500 text-xs line-clamp-2 mb-4 flex-1">{idea.description}</p>
+
+                      <div className="pt-4 border-t flex items-center justify-between">
+                        <div className="flex gap-3 text-xs font-bold text-gray-500">
+                          <span>👍 {idea.votes?.filter((v: any) => v.value === 1).length || 0}</span>
+                          <span>👎 {idea.votes?.filter((v: any) => v.value === -1).length || 0}</span>
+                        </div>
+                        {idea.type === 'PAID' ? (
+                          <Link
+                            href={`/ideas/${idea.id}/purchase`}
+                            className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+                          >
+                            💰 Buy Now
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/ideas/${idea.id}`}
+                            className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+                          >
+                            View Idea →
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              <div className="mt-12 flex items-center justify-center gap-3">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                  className="px-4 py-2 bg-white border rounded-xl disabled:opacity-30 hover:bg-gray-50 font-bold text-sm transition"
+                >
+                  ← Prev
+                </button>
+                <div className="flex gap-2">
+                  {[...Array(totalPages)].map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setPage(index + 1)}
+                      className={`w-10 h-10 rounded-xl font-bold text-sm transition ${
+                        page === index + 1 ? 'bg-green-700 text-white' : 'bg-white border'
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage(page + 1)}
+                  className="px-4 py-2 bg-white border rounded-xl disabled:opacity-30 hover:bg-gray-50 font-bold text-sm transition"
+                >
+                  Next →
+                </button>
+              </div>
+            </>
           )}
         </main>
       </div>
