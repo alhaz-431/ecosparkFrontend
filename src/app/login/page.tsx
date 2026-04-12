@@ -15,15 +15,25 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      // ১. ব্যাকএন্ডে লগইন রিকোয়েস্ট
       const res = await api.post('/auth/login', { email, password, role });
       
+      // ব্যাকএন্ড থেকে আসা আসল রোলটা নিচ্ছি
+      const userRole = res.data.user.role; 
+
+      // ২. লোকাল স্টোরেজে ডাটা সেভ (প্রোফাইল আর নেভবারের জন্য মাস্ট)
       localStorage.setItem('token', res.data.token);
-      localStorage.setItem('role', res.data.user.role); 
+      localStorage.setItem('role', userRole); 
+      localStorage.setItem('user', JSON.stringify(res.data.user)); 
 
-      alert('Login Successful!');
+      alert('Login Successful! 🎉');
 
-      // এখানে পরিবর্তন করা হয়েছে: সরাসরি হোম পেজে রিডাইরেক্ট হবে
-      router.push('/'); 
+      // ৩. আপনার রিকোয়ারমেন্ট অনুযায়ী সঠিক ড্যাশবোর্ডে পাঠানো
+      if (userRole === 'ADMIN') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/user/dashboard');
+      }
       
     } catch (error: any) {
       console.error('Login Error:', error);
@@ -49,7 +59,7 @@ export default function LoginPage() {
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none transition"
+              className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none transition text-black"
               required
             />
           </div>
@@ -61,7 +71,7 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none transition"
+              className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none transition text-black"
               required
             />
           </div>
