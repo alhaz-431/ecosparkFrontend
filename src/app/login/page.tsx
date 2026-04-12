@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,30 +15,32 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
     try {
-      // ১. ব্যাকএন্ডে লগইন রিকোয়েস্ট
+      // ১. ব্যাকএন্ডে লগইন রিকোয়েস্ট
       const res = await api.post('/auth/login', { email, password, role });
       
-      // ব্যাকএন্ড থেকে আসা আসল রোলটা নিচ্ছি
       const userRole = res.data.user.role; 
 
-      // ২. লোকাল স্টোরেজে ডাটা সেভ (প্রোফাইল আর নেভবারের জন্য মাস্ট)
+      // ২. লোকাল স্টোরেজে ডাটা সেভ
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('role', userRole); 
       localStorage.setItem('user', JSON.stringify(res.data.user)); 
 
-      alert('Login Successful! 🎉');
+      toast.success('Login Successful! 🎉');
 
-      // ৩. আপনার রিকোয়ারমেন্ট অনুযায়ী সঠিক ড্যাশবোর্ডে পাঠানো
-      if (userRole === 'ADMIN') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/user/dashboard');
-      }
+      // ৩. লগইন সাকসেস হলে সরাসরি হোম পেজে পাঠানো (যেখানে সব আইডিয়া কার্ড আছে)
+      router.push('/');
       
+      // পেজটি একবার রিফ্রেশ করা যাতে নেভবার আপডেট হয়
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+
     } catch (error: any) {
       console.error('Login Error:', error);
-      alert(error.response?.data?.message || 'Login failed! Please check your credentials.');
+      const errorMessage = error.response?.data?.message || 'Login failed! Please check your credentials.';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -109,7 +112,7 @@ export default function LoginPage() {
             type="submit"
             disabled={loading}
             className={`w-full bg-green-700 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-green-200 transition-all ${
-              loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-800'
+              loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-800 active:scale-95'
             }`}
           >
             {loading ? 'Logging in...' : 'Login Now →'}
