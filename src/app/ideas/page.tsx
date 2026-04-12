@@ -44,35 +44,28 @@ export default function IdeasPage() {
   const handleVote = async (ideaId: string, voteType: 'UPVOTE' | 'DOWNVOTE') => {
     const token = localStorage.getItem('token');
     
-    // ১. টোকেন না থাকলে সরাসরি লগইন পেজে পাঠাবে
     if (!token) {
       toast.error('Please login to vote!');
       return router.push('/login');
     }
 
+    // আপনার ব্যাকএন্ড কন্ট্রোলার অনুযায়ী value সেট করা (1 অথবা -1)
+    const voteValue = voteType === 'UPVOTE' ? 1 : -1;
+
     setVotingId(ideaId);
     try {
-      // ২. ব্যাকএন্ডে রিকোয়েস্ট পাঠানো
-      await api.post(`/votes/${ideaId}`, { type: voteType });
+      // ব্যাকএন্ডে { value: 1/-1 } ফরম্যাটে ডাটা পাঠানো হচ্ছে
+      const res = await api.post(`/votes/${ideaId}`, { value: voteValue });
       
-      toast.success('Vote recorded! 🎉');
+      // ব্যাকএন্ড থেকে আসা মেসেজ দেখানো (যেমন: 'Vote added', 'Vote updated', 'Vote removed')
+      toast.success(res.data.message || 'Vote recorded! 🎉');
       
-      // ৩. UI রিফ্রেশ না করেই ডাটা আপডেট
-      setIdeas(prevIdeas => 
-        prevIdeas.map(idea => {
-          if (idea.id === ideaId) {
-            return { 
-              ...idea, 
-              upvotes: voteType === 'UPVOTE' ? (idea.upvotes || 0) + 1 : (idea.upvotes || 0),
-              downvotes: voteType === 'DOWNVOTE' ? (idea.downvotes || 0) + 1 : (idea.downvotes || 0)
-            };
-          }
-          return idea;
-        })
-      );
+      // ভোট দেওয়ার পর ডাটা রিফ্রেশ করা যাতে আপভোট/ডাউনভোট সংখ্যা আপডেট হয়
+      fetchIdeas(); 
+
     } catch (error: any) {
-      // ৪. এখানে আমি আপনার দেওয়া নতুন এরর হ্যান্ডলিং লজিকটি বসিয়ে দিলাম
-      console.error("Full Error:", error);
+      console.error("Voting Error Detail:", error);
+      // সঠিক এরর মেসেজ হ্যান্ডলিং
       const msg = error.response?.data?.message || error.message || 'Failed to vote!';
       toast.error(msg);
     } finally {
@@ -144,59 +137,63 @@ export default function IdeasPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {ideas.map((idea) => (
-                <div key={idea.id} className="bg-white rounded-3xl shadow-md overflow-hidden flex flex-col border border-gray-100 hover:shadow-xl transition-all">
-                  {/* Image Section */}
-                  <div className="relative h-48 bg-gray-200">
-                    <img 
-                      src={idea.images?.[0] || 'https://via.placeholder.com/400x300'} 
-                      className="w-full h-full object-cover" 
-                      alt={idea.title} 
-                    />
-                    <div className="absolute top-3 right-3">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase text-white ${idea.type === 'PAID' ? 'bg-orange-500' : 'bg-green-500'}`}>
-                        {idea.type === 'PAID' ? `৳${idea.price}` : 'Free'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Content Section */}
-                  <div className="p-6 flex-1 flex flex-col">
-                    <span className="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">{idea.category?.name || 'Idea'}</span>
-                    <h3 className="font-bold text-xl text-gray-900 mb-2 line-clamp-1">{idea.title}</h3>
-                    <p className="text-gray-500 text-xs mb-6 line-clamp-2 flex-1">{idea.description}</p>
-
-                    {/* Bottom Actions */}
-                    <div className="pt-4 border-t flex items-center justify-between mt-auto">
-                      <div className="flex items-center bg-gray-100 rounded-2xl p-1 gap-1">
-                        <button 
-                          onClick={(e) => { e.preventDefault(); handleVote(idea.id, 'UPVOTE'); }}
-                          disabled={votingId === idea.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-white text-gray-600 hover:text-green-600 transition-all disabled:opacity-50"
-                        >
-                          <span className="text-lg font-bold">▲</span>
-                          <span className="font-bold text-xs">{idea.upvotes || 0}</span>
-                        </button>
-                        <div className="w-[1px] h-4 bg-gray-300"></div>
-                        <button 
-                          onClick={(e) => { e.preventDefault(); handleVote(idea.id, 'DOWNVOTE'); }}
-                          disabled={votingId === idea.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-white text-gray-600 hover:text-red-600 transition-all disabled:opacity-50"
-                        >
-                          <span className="text-lg font-bold">▼</span>
-                          <span className="font-bold text-xs">{idea.downvotes || 0}</span>
-                        </button>
+              {ideas.length === 0 ? (
+                <div className="col-span-full text-center py-20 text-gray-400 italic">No ideas found.</div>
+              ) : (
+                ideas.map((idea) => (
+                  <div key={idea.id} className="bg-white rounded-3xl shadow-md overflow-hidden flex flex-col border border-gray-100 hover:shadow-xl transition-all">
+                    {/* Image Section */}
+                    <div className="relative h-48 bg-gray-200">
+                      <img 
+                        src={idea.images?.[0] || 'https://via.placeholder.com/400x300'} 
+                        className="w-full h-full object-cover" 
+                        alt={idea.title} 
+                      />
+                      <div className="absolute top-3 right-3">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase text-white ${idea.type === 'PAID' ? 'bg-orange-500' : 'bg-green-500'}`}>
+                          {idea.type === 'PAID' ? `৳${idea.price}` : 'Free'}
+                        </span>
                       </div>
+                    </div>
 
-                      <Link 
-                        href={idea.type === 'PAID' ? `/ideas/${idea.id}/purchase` : `/ideas/${idea.id}`}
-                        className={`px-4 py-2 rounded-xl text-xs font-black text-white transition-all active:scale-95 ${idea.type === 'PAID' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-700 hover:bg-green-800'}`}
-                      >
-                        {idea.type === 'PAID' ? 'Buy 💰' : 'View →'}
-                      </Link>
+                    {/* Content Section */}
+                    <div className="p-6 flex-1 flex flex-col">
+                      <span className="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">{idea.category?.name || 'Idea'}</span>
+                      <h3 className="font-bold text-xl text-gray-900 mb-2 line-clamp-1">{idea.title}</h3>
+                      <p className="text-gray-500 text-xs mb-6 line-clamp-2 flex-1">{idea.description}</p>
+
+                      {/* Bottom Actions */}
+                      <div className="pt-4 border-t flex items-center justify-between mt-auto">
+                        <div className="flex items-center bg-gray-100 rounded-2xl p-1 gap-1">
+                          <button 
+                            onClick={() => handleVote(idea.id, 'UPVOTE')}
+                            disabled={votingId === idea.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-white text-gray-600 hover:text-green-600 transition-all disabled:opacity-50"
+                          >
+                            <span className="text-lg font-bold">▲</span>
+                            <span className="font-bold text-xs">{idea.upvotes || 0}</span>
+                          </button>
+                          <div className="w-[1px] h-4 bg-gray-300"></div>
+                          <button 
+                            onClick={() => handleVote(idea.id, 'DOWNVOTE')}
+                            disabled={votingId === idea.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-white text-gray-600 hover:text-red-600 transition-all disabled:opacity-50"
+                          >
+                            <span className="text-lg font-bold">▼</span>
+                            <span className="font-bold text-xs">{idea.downvotes || 0}</span>
+                          </button>
+                        </div>
+
+                        <Link 
+                          href={idea.type === 'PAID' ? `/ideas/${idea.id}/purchase` : `/ideas/${idea.id}`}
+                          className={`px-4 py-2 rounded-xl text-xs font-black text-white transition-all active:scale-95 ${idea.type === 'PAID' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-700 hover:bg-green-800'}`}
+                        >
+                          {idea.type === 'PAID' ? 'Buy 💰' : 'View →'}
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )
               ))}
             </div>
           )}
