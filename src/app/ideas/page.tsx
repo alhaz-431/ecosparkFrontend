@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
+import toast from 'react-hot-toast';
 
 export default function IdeasPage() {
   const [ideas, setIdeas] = useState<any[]>([]);
@@ -12,7 +13,7 @@ export default function IdeasPage() {
   const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [votingId, setVotingId] = useState<string | null>(null); // ভোট দেওয়ার সময় লোডিং ট্র্যাকার
+  const [votingId, setVotingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchIdeas();
@@ -38,48 +39,41 @@ export default function IdeasPage() {
     }
   };
 
-  // --- নতুন ভোট হ্যান্ডেলার ফাংশন ---
   const handleVote = async (ideaId: string, voteType: 'UPVOTE' | 'DOWNVOTE') => {
-    setVotingId(ideaId); // নির্দিষ্ট কার্ডে লোডিং দেখাবে
+    setVotingId(ideaId);
     try {
-      // আপনার ব্যাকএন্ড এন্ডপয়েন্ট অনুযায়ী রিকোয়েস্ট
+      // ব্যাকএন্ডে ভোট পাঠানো
       await api.post(`/votes/${ideaId}`, { type: voteType });
+      toast.success('Vote recorded!');
       
-      // ভোট দেওয়ার পর শুধু ওই আইডিয়াটির ডাটা আপডেট করা (UI রিফ্রেশ ছাড়া)
+      // UI সাথে সাথে আপডেট করা
       setIdeas(prevIdeas => 
         prevIdeas.map(idea => {
           if (idea.id === ideaId) {
-            const upChange = voteType === 'UPVOTE' ? 1 : 0;
-            const downChange = voteType === 'DOWNVOTE' ? 1 : 0;
             return { 
               ...idea, 
-              upvotes: (idea.upvotes || 0) + upChange, 
-              downvotes: (idea.downvotes || 0) + downChange 
+              upvotes: voteType === 'UPVOTE' ? (idea.upvotes || 0) + 1 : (idea.upvotes || 0),
+              downvotes: voteType === 'DOWNVOTE' ? (idea.downvotes || 0) + 1 : (idea.downvotes || 0)
             };
           }
           return idea;
         })
       );
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Voting failed! Please login first.');
+      const msg = error.response?.data?.message || 'Please login to vote!';
+      toast.error(msg);
     } finally {
       setVotingId(null);
     }
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    fetchIdeas();
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Section */}
       <section className="bg-gradient-to-br from-green-800 to-emerald-600 py-16 px-6 text-center text-white">
-        <h1 className="text-4xl font-extrabold mb-4">🌱 All Sustainability Ideas</h1>
+        <h1 className="text-4xl font-extrabold mb-4 text-white">🌱 All Sustainability Ideas</h1>
         <p className="text-green-100 text-lg mb-8">Browse, vote and get inspired by community ideas</p>
-        <form onSubmit={handleSearch} className="flex justify-center gap-2 max-w-xl mx-auto">
+        <form onSubmit={(e) => { e.preventDefault(); setPage(1); fetchIdeas(); }} className="flex justify-center gap-2 max-w-xl mx-auto">
           <input
             type="text"
             placeholder="Search ideas..."
@@ -104,7 +98,7 @@ export default function IdeasPage() {
                 <select
                   value={category}
                   onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-                  className="w-full border p-2.5 rounded-xl text-sm outline-none text-black"
+                  className="w-full border p-2.5 rounded-xl text-sm outline-none text-black bg-white"
                 >
                   <option value="">All Categories</option>
                   <option value="Energy">⚡ Energy</option>
@@ -118,94 +112,75 @@ export default function IdeasPage() {
                 <select
                   value={type}
                   onChange={(e) => { setType(e.target.value); setPage(1); }}
-                  className="w-full border p-2.5 rounded-xl text-sm outline-none text-black"
+                  className="w-full border p-2.5 rounded-xl text-sm outline-none text-black bg-white"
                 >
                   <option value="">Free & Paid</option>
                   <option value="FREE">🆓 Free Only</option>
                   <option value="PAID">💰 Paid Only</option>
                 </select>
               </div>
-              <div className="bg-green-50 p-4 rounded-xl text-center border border-green-100 mt-4">
-                <Link href="/user/dashboard" className="bg-green-700 text-white px-4 py-2 rounded-full text-sm hover:bg-green-800 transition block">
-                  Share Now 🌱
-                </Link>
-              </div>
             </div>
           </div>
         </aside>
 
-        {/* Main Content (Ideas Grid) */}
+        {/* Main Grid */}
         <main className="flex-1">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-80 bg-gray-200 rounded-3xl"></div>
-              ))}
+              {[1, 2, 3, 4].map((i) => <div key={i} className="h-80 bg-gray-200 rounded-3xl"></div>)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 text-black">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {ideas.map((idea) => (
-                <div key={idea.id} className="bg-white rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col border border-gray-100">
-                  <div className="relative h-48 bg-slate-200 overflow-hidden">
-                    <img
-                      src={idea.images?.[0] || 'https://via.placeholder.com/400x300?text=Sustainability+Idea'}
-                      alt={idea.title}
-                      className="w-full h-full object-cover"
+                <div key={idea.id} className="bg-white rounded-3xl shadow-md overflow-hidden flex flex-col border border-gray-100 hover:shadow-xl transition-all">
+                  {/* Image Section */}
+                  <div className="relative h-48 bg-gray-200">
+                    <img 
+                      src={idea.images?.[0] || 'https://via.placeholder.com/400x300'} 
+                      className="w-full h-full object-cover" 
+                      alt={idea.title} 
                     />
                     <div className="absolute top-3 right-3">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-lg ${
-                        idea.type === 'PAID' ? 'bg-orange-500 text-white' : 'bg-green-500 text-white'
-                      }`}>
-                        {idea.type === 'PAID' ? `💰 ৳${idea.price}` : '🆓 Free'}
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase text-white ${idea.type === 'PAID' ? 'bg-orange-500' : 'bg-green-500'}`}>
+                        {idea.type === 'PAID' ? `৳${idea.price}` : 'Free'}
                       </span>
                     </div>
                   </div>
 
+                  {/* Content Section */}
                   <div className="p-6 flex-1 flex flex-col">
-                    <span className="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">
-                      {idea.category?.name || idea.category || 'Environmental'}
-                    </span>
-                    <h3 className="font-black text-xl text-gray-900 line-clamp-1 mb-2">
-                      {idea.title}
-                    </h3>
-                    <p className="text-gray-500 text-xs line-clamp-2 mb-6 flex-1">
-                      {idea.description}
-                    </p>
+                    <span className="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">{idea.category?.name || 'Idea'}</span>
+                    <h3 className="font-bold text-xl text-gray-900 mb-2 line-clamp-1">{idea.title}</h3>
+                    <p className="text-gray-500 text-xs mb-6 line-clamp-2 flex-1">{idea.description}</p>
 
-                    <div className="pt-4 border-t flex items-center justify-between">
-                      {/* --- ভোট বাটন (আপডেটেড) --- */}
-                      <div className="flex gap-4 text-xs font-black">
+                    {/* Bottom Actions (আপনার চাওয়া ভোট বাটন) */}
+                    <div className="pt-4 border-t flex items-center justify-between mt-auto">
+                      <div className="flex items-center bg-gray-100 rounded-2xl p-1 gap-1">
                         <button 
-                          onClick={() => handleVote(idea.id, 'UPVOTE')}
+                          onClick={(e) => { e.preventDefault(); handleVote(idea.id, 'UPVOTE'); }}
                           disabled={votingId === idea.id}
-                          className="flex items-center gap-1 text-gray-400 hover:text-green-600 transition disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-white text-gray-600 hover:text-green-600 transition-all disabled:opacity-50"
                         >
-                          👍 {idea.upvotes || 0}
+                          <span className="text-lg font-bold">▲</span>
+                          <span className="font-bold text-xs">{idea.upvotes || 0}</span>
                         </button>
+                        <div className="w-[1px] h-4 bg-gray-300"></div>
                         <button 
-                          onClick={() => handleVote(idea.id, 'DOWNVOTE')}
+                          onClick={(e) => { e.preventDefault(); handleVote(idea.id, 'DOWNVOTE'); }}
                           disabled={votingId === idea.id}
-                          className="flex items-center gap-1 text-gray-400 hover:text-red-600 transition disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-white text-gray-600 hover:text-red-600 transition-all disabled:opacity-50"
                         >
-                          👎 {idea.downvotes || 0}
+                          <span className="text-lg font-bold">▼</span>
+                          <span className="font-bold text-xs">{idea.downvotes || 0}</span>
                         </button>
                       </div>
-                      
-                      {idea.type === 'PAID' ? (
-                        <Link
-                          href={`/ideas/${idea.id}/purchase?title=${encodeURIComponent(idea.title)}&price=${idea.price}`}
-                          className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-xl text-xs font-black transition-all shadow-md active:scale-95"
-                        >
-                          Buy Access 💰
-                        </Link>
-                      ) : (
-                        <Link
-                          href={`/ideas/${idea.id}`}
-                          className="bg-green-700 hover:bg-green-800 text-white px-5 py-2 rounded-xl text-xs font-black transition-all shadow-md active:scale-95"
-                        >
-                          View Idea →
-                        </Link>
-                      )}
+
+                      <Link 
+                        href={idea.type === 'PAID' ? `/ideas/${idea.id}/purchase` : `/ideas/${idea.id}`}
+                        className={`px-4 py-2 rounded-xl text-xs font-black text-white transition-all active:scale-95 ${idea.type === 'PAID' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-700 hover:bg-green-800'}`}
+                      >
+                        {idea.type === 'PAID' ? 'Buy 💰' : 'View →'}
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -217,4 +192,3 @@ export default function IdeasPage() {
     </div>
   );
 }
-
