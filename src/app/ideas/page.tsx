@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 export default function IdeasPage() {
   const [ideas, setIdeas] = useState<any[]>([]);
@@ -14,6 +15,7 @@ export default function IdeasPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [votingId, setVotingId] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetchIdeas();
@@ -39,14 +41,24 @@ export default function IdeasPage() {
     }
   };
 
+  // এই ফাংশনটি আমি আপডেট করে দিলাম
   const handleVote = async (ideaId: string, voteType: 'UPVOTE' | 'DOWNVOTE') => {
+    const token = localStorage.getItem('token');
+    
+    // ১. প্রথমেই চেক করছি টোকেন আছে কি না
+    if (!token) {
+      toast.error('Please login to vote!');
+      return router.push('/login');
+    }
+
     setVotingId(ideaId);
     try {
-      // ব্যাকএন্ডে ভোট পাঠানো
+      // ২. ব্যাকএন্ডে ভোট পাঠানো
       await api.post(`/votes/${ideaId}`, { type: voteType });
-      toast.success('Vote recorded!');
       
-      // UI সাথে সাথে আপডেট করা
+      toast.success('Vote recorded! 🎉');
+      
+      // ৩. UI সাথে সাথে আপডেট করা (বিনা রিফ্রেশে)
       setIdeas(prevIdeas => 
         prevIdeas.map(idea => {
           if (idea.id === ideaId) {
@@ -60,7 +72,8 @@ export default function IdeasPage() {
         })
       );
     } catch (error: any) {
-      const msg = error.response?.data?.message || 'Please login to vote!';
+      console.error("Voting Error:", error);
+      const msg = error.response?.data?.message || error.message || 'Voting failed!';
       toast.error(msg);
     } finally {
       setVotingId(null);
@@ -153,7 +166,7 @@ export default function IdeasPage() {
                     <h3 className="font-bold text-xl text-gray-900 mb-2 line-clamp-1">{idea.title}</h3>
                     <p className="text-gray-500 text-xs mb-6 line-clamp-2 flex-1">{idea.description}</p>
 
-                    {/* Bottom Actions (আপনার চাওয়া ভোট বাটন) */}
+                    {/* Bottom Actions */}
                     <div className="pt-4 border-t flex items-center justify-between mt-auto">
                       <div className="flex items-center bg-gray-100 rounded-2xl p-1 gap-1">
                         <button 
