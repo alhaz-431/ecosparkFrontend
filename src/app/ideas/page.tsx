@@ -41,11 +41,10 @@ export default function IdeasPage() {
     }
   };
 
-  // এই ফাংশনটি আমি আপডেট করে দিলাম
   const handleVote = async (ideaId: string, voteType: 'UPVOTE' | 'DOWNVOTE') => {
     const token = localStorage.getItem('token');
     
-    // ১. প্রথমেই চেক করছি টোকেন আছে কি না
+    // ১. টোকেন না থাকলে সরাসরি লগইন পেজে পাঠাবে
     if (!token) {
       toast.error('Please login to vote!');
       return router.push('/login');
@@ -53,12 +52,12 @@ export default function IdeasPage() {
 
     setVotingId(ideaId);
     try {
-      // ২. ব্যাকএন্ডে ভোট পাঠানো
+      // ২. ব্যাকএন্ডে রিকোয়েস্ট পাঠানো
       await api.post(`/votes/${ideaId}`, { type: voteType });
       
       toast.success('Vote recorded! 🎉');
       
-      // ৩. UI সাথে সাথে আপডেট করা (বিনা রিফ্রেশে)
+      // ৩. UI রিফ্রেশ না করেই ডাটা আপডেট
       setIdeas(prevIdeas => 
         prevIdeas.map(idea => {
           if (idea.id === ideaId) {
@@ -72,8 +71,9 @@ export default function IdeasPage() {
         })
       );
     } catch (error: any) {
-      console.error("Voting Error:", error);
-      const msg = error.response?.data?.message || error.message || 'Voting failed!';
+      // ৪. এখানে আমি আপনার দেওয়া নতুন এরর হ্যান্ডলিং লজিকটি বসিয়ে দিলাম
+      console.error("Full Error:", error);
+      const msg = error.response?.data?.message || error.message || 'Failed to vote!';
       toast.error(msg);
     } finally {
       setVotingId(null);
