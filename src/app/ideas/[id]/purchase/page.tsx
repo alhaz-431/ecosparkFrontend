@@ -25,12 +25,12 @@ export default function PurchasePage() {
         const res = await api.get(`/ideas/${id}`);
         setIdea(res.data.data || res.data);
       } catch (error: any) {
-        // যদি ডাটাবেস থেকে এক্সেস না দেয়, তবে আমরা URL থেকে আসা ডাটা দিয়ে UI দেখাবো
+        // যদি অথরাইজেশন এরর হয়, তবে কুয়েরি প্যারামিটার থেকে ডাটা সেট করবে
         if (error.response?.status === 403 || error.response?.status === 401) {
           setIdea({
             id: id,
-            title: titleFromQuery || "Premium Sustainability Idea",
-            price: priceFromQuery || "70" // এখানে আপনার ডিফল্ট প্রাইস দিয়ে দিন
+            title: titleFromQuery || "Premium Idea",
+            price: priceFromQuery || "70" 
           });
         }
       } finally {
@@ -43,25 +43,31 @@ export default function PurchasePage() {
 
   const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // টোকেন চেক (লগইন ছাড়া পেমেন্ট হবে না)
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('পেমেন্ট করতে আগে লগইন করুন।');
+      return router.push('/login');
+    }
+
     setPurchasing(true);
     try {
-      // ব্যাকএন্ডে পেমেন্ট রিকোয়েস্ট পাঠানো
       const res = await api.post(`/ideas/${id}/purchase`);
 
       if (res.status === 201 || res.status === 200) {
-        toast.success('অভিনন্দন! আপনি সফলভাবে আইডিয়াটি ক্রয় করেছেন। 🎉');
+        toast.success('অভিনন্দন! আইডিয়াটি সফলভাবে কেনা হয়েছে। 🎉');
         router.push(`/ideas/${id}`); 
       }
     } catch (error: any) {
       console.error('Payment Error:', error);
-      const msg = error.response?.data?.message || error.message || 'পেমেন্ট ব্যর্থ হয়েছে।';
-      toast.error(msg);
+      toast.error(error.response?.data?.message || 'পেমেন্ট গেটওয়েতে সমস্যা হচ্ছে।');
     } finally {
       setPurchasing(false);
     }
   };
 
-  // ডিসপ্লে প্রাইস নির্ধারণ (০ না দেখিয়ে অন্তত ৭টি দেখাবে যদি ডাটা না থাকে)
+  // ডিসপ্লে প্রাইস নির্ধারণ (নিশ্চিত করা হয়েছে যেন ০ না হয়)
   const displayPrice = idea?.price || priceFromQuery || '70';
 
   if (loading && !titleFromQuery) return (
@@ -71,7 +77,7 @@ export default function PurchasePage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 text-black">
+    <div className="min-h-screen bg-gray-50 py-12 px-4 text-black font-sans">
       <div className="max-w-5xl mx-auto">
         
         <Link href="/ideas" className="inline-flex items-center gap-2 text-gray-500 hover:text-black mb-8 font-black transition-all">
@@ -81,11 +87,11 @@ export default function PurchasePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           
-          {/* Order Summary */}
+          {/* Order Summary Section */}
           <div className="space-y-8">
             <div>
               <h1 className="text-4xl font-black text-gray-900 mb-2">Secure Checkout</h1>
-              <p className="text-gray-500 font-medium text-lg">আপনার তথ্য সম্পূর্ণ নিরাপদ।</p>
+              <p className="text-gray-500 font-medium">আপনার পেমেন্ট তথ্য এনক্রিপ্ট করা থাকে।</p>
             </div>
 
             <div className="bg-white p-8 rounded-[40px] shadow-sm border border-gray-100 relative overflow-hidden">
@@ -97,58 +103,61 @@ export default function PurchasePage() {
                 <div className="w-20 h-20 bg-green-100 rounded-[28px] flex items-center justify-center text-3xl shadow-inner">🌱</div>
                 <div className="flex-1">
                   <h3 className="font-black text-xl text-gray-900 line-clamp-2 leading-tight">
-                    {idea?.title || "Premium Idea"}
+                    {idea?.title || "Sustainability Project"}
                   </h3>
-                  <p className="text-sm text-gray-400 font-bold mt-1 uppercase tracking-wider">EcoSpark Project</p>
+                  <p className="text-sm text-gray-400 font-bold mt-1 uppercase tracking-wider">EcoSpark Hub</p>
                 </div>
               </div>
 
               <div className="space-y-4 border-t border-dashed pt-6">
-                <div className="flex justify-between items-center text-gray-500 font-bold">
-                  <span>Idea Platform Fee</span>
+                <div className="flex justify-between items-center text-gray-600 font-bold">
+                  <span>Idea Price</span>
                   <span>৳{displayPrice}</span>
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t">
-                  <span className="text-xl font-black text-gray-900">Total Amount</span>
+                  <span className="text-xl font-black text-gray-900">Total</span>
                   <span className="text-3xl font-black text-emerald-700">৳{displayPrice}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-gray-400 text-sm px-4 font-medium">
+            <div className="flex items-center gap-4 text-gray-400 text-sm px-4">
               <ShieldCheck size={24} className="text-emerald-500 shrink-0" />
-              <p>আপনার পেমেন্ট কার্ড তথ্য SSL এনক্রিপশনের মাধ্যমে সম্পূর্ণ সুরক্ষিত রাখা হবে।</p>
+              <p className="font-medium">পেমেন্ট করার পর আপনার ড্যাশবোর্ড থেকে আইডিয়াটি অ্যাক্সেস করতে পারবেন।</p>
             </div>
           </div>
 
-          {/* Card Form */}
+          {/* Payment Details Section */}
           <div className="bg-white p-10 rounded-[50px] shadow-2xl shadow-gray-200/50 border border-gray-50">
-            <h2 className="text-2xl font-black text-gray-900 mb-10">Payment Details</h2>
+            <h2 className="text-2xl font-black text-gray-900 mb-10">Card Details</h2>
 
             <form onSubmit={handlePurchase} className="space-y-6">
+              {/* Card Number */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Card Number</label>
                 <div className="relative">
                   <input 
                     type="text" 
                     required
-                    autoComplete="off"
+                    name="card_num"
+                    autoComplete="cc-number"
                     placeholder="4242 4242 4242 4242" 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-5 px-14 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all font-bold text-lg"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-5 px-14 outline-none focus:border-emerald-500 transition-all font-bold text-lg"
                   />
                   <CreditCard className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={24} />
                 </div>
               </div>
 
+              {/* Expiry and CVC */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Expiry Date</label>
                   <input 
                     type="text" 
                     required
-                    name="expiry"
-                    autoComplete="off"
-                    placeholder="MM / YY" 
+                    name="card_expiry" // নাম পরিবর্তন জিমেইল অটোফিল আটকাতে
+                    autoComplete="cc-exp" // ব্রাউজারকে কার্ড এক্সপায়ারি বোঝাতে
+                    placeholder="12 / 26" 
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-5 px-6 outline-none focus:border-emerald-500 transition-all font-bold text-lg text-center"
                   />
                 </div>
@@ -157,7 +166,8 @@ export default function PurchasePage() {
                   <input 
                     type="password" 
                     required
-                    autoComplete="off"
+                    name="card_cvc"
+                    autoComplete="cc-csc"
                     maxLength={3}
                     placeholder="•••" 
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-5 px-6 outline-none focus:border-emerald-500 transition-all font-bold text-lg text-center"
@@ -165,17 +175,20 @@ export default function PurchasePage() {
                 </div>
               </div>
 
+              {/* Cardholder Name */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Cardholder Name</label>
                 <input 
                   type="text" 
                   required
-                  autoComplete="off"
-                  placeholder="Enter name as on card" 
+                  name="card_name"
+                  autoComplete="cc-name"
+                  placeholder="Mohammad Alhaz" 
                   className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-5 px-6 outline-none focus:border-emerald-500 transition-all font-bold text-lg"
                 />
               </div>
 
+              {/* Submit Button */}
               <button 
                 type="submit"
                 disabled={purchasing || !idea}
