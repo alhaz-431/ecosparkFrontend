@@ -90,7 +90,8 @@ export default function HomePage() {
               placeholder="Search sustainability ideas..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 p-4 rounded-xl text-gray-800 focus:outline-none shadow-lg"
+              className="flex-1 p-4 rounded-xl bg-green-700 text-gray-900 placeholder-gray-400 focus:outline-none shadow-lg border border-gray-100" 
+
             />
             <button type="submit" className="bg-white text-green-700 px-8 py-4 rounded-xl font-bold hover:bg-green-100 transition shadow-lg">
               Search
@@ -232,3 +233,4 @@ export default function HomePage() {
     </div>
   );
 }
+
