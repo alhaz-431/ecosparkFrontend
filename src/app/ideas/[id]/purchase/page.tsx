@@ -11,7 +11,7 @@ export default function PurchasePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // URL Query থেকে তথ্য নেওয়া (যদি IdeasPage থেকে পাঠানো হয়)
+  // IdeasPage থেকে পাঠানো টাইটেল আর প্রাইস ইউআরএল থেকে ধরা (লজিক্যাল ব্যাকআপ)
   const titleFromQuery = searchParams.get('title');
   const priceFromQuery = searchParams.get('price');
 
@@ -22,29 +22,19 @@ export default function PurchasePage() {
   useEffect(() => {
     const fetchIdea = async () => {
       try {
-        // প্রথমে ব্যাকএন্ড থেকে ডাটা আনার চেষ্টা করবে
+        // প্রথমে চেষ্টা করবে ব্যাকএন্ড থেকে ডাটা আনতে
         const res = await api.get(`/ideas/${id}`);
         setIdea(res.data.data || res.data);
       } catch (error: any) {
-        console.error('Fetch Error:', error.message);
-        
         // যদি ৪MD (Forbidden) এরর আসে, তার মানে আইডিয়াটি আছে কিন্তু কেনা নেই
-        if (error.response?.status === 403) {
-          // যদি URL-এ টাইটেল আর প্রাইস থাকে, সেটা সেট করে দেব
-          if (titleFromQuery && priceFromQuery) {
-            setIdea({ 
-              id: id, 
-              title: titleFromQuery, 
-              price: priceFromQuery 
-            });
-          } else {
-            // যদি কিছুই না থাকে, তবুও একটা ডিফল্ট মেসেজ দিয়ে পেমেন্ট বাটন দেখাব
-            setIdea({ 
-              id: id, 
-              title: "Sustainability Idea (Premium Content)", 
-              price: "Price Details in Ideas Page" 
-            });
-          }
+        if (error.response?.status === 403 || error.response?.status === 401) {
+          console.log("Purchase required, using query params...");
+          // ব্যাকএন্ড ডাটা না দিলে আমরা URL এর ডাটা ব্যবহার করব
+          setIdea({
+            id: id,
+            title: titleFromQuery || "Premium Sustainability Idea",
+            price: priceFromQuery || "Paid"
+          });
         }
       } finally {
         setLoading(false);
@@ -55,14 +45,9 @@ export default function PurchasePage() {
   }, [id, titleFromQuery, priceFromQuery]);
 
   const handlePurchase = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('Please login to purchase!');
-      return router.push('/login');
-    }
-
     setPurchasing(true);
     try {
+      // পেমেন্ট রিকোয়েস্ট পাঠানো
       const res = await api.post(`/ideas/${id}/purchase`);
 
       if (res.status === 201 || res.status === 200) {
@@ -71,6 +56,7 @@ export default function PurchasePage() {
         router.push(`/ideas/${id}`); 
       }
     } catch (error: any) {
+      console.error('Payment Error:', error);
       const msg = error.response?.data?.message || error.message || 'পেমেন্ট ব্যর্থ হয়েছে।';
       toast.error(msg);
     } finally {
@@ -78,16 +64,10 @@ export default function PurchasePage() {
     }
   };
 
-  if (loading) return (
+  // লোডিং স্টেট
+  if (loading && !titleFromQuery) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-700"></div>
-    </div>
-  );
-  
-  if (!idea) return (
-    <div className="text-center py-20 bg-gray-50 min-h-screen">
-      <h2 className="text-2xl font-bold text-red-500">আইডিয়ার তথ্য পাওয়া যায়নি!</h2>
-      <Link href="/ideas" className="text-green-600 underline mt-4 block">আইডিয়া লিস্টে ফিরে যান</Link>
     </div>
   );
 
@@ -95,22 +75,28 @@ export default function PurchasePage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6 text-black">
       <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-10 border border-green-100">
         <h2 className="text-3xl font-black text-gray-900 text-center mb-2">Secure Checkout 🔒</h2>
-        <p className="text-gray-500 text-center mb-8">আপনি এই আইডিয়াটি ক্রয় করছেন:</p>
+        <p className="text-gray-500 text-center mb-8">আপনি এই আইডিয়াটি ক্রয় করছেন:</p>
 
-        <div className="bg-green-50 p-6 rounded-3xl mb-8 border border-green-100">
-          <h3 className="font-bold text-xl text-green-800 line-clamp-2">{idea.title}</h3>
-          <div className="mt-4 flex justify-between items-center">
-            <span className="text-gray-500 font-medium">মোট প্রদেয়:</span>
-            <span className="text-3xl font-black text-gray-900">
-              {isNaN(Number(idea.price)) ? idea.price : `৳${idea.price}`}
-            </span>
+        {idea ? (
+          <div className="bg-green-50 p-6 rounded-3xl mb-8 border border-green-100">
+            <h3 className="font-bold text-xl text-green-800 line-clamp-2">
+              {idea.title}
+            </h3>
+            <div className="mt-4 flex justify-between items-center">
+              <span className="text-gray-500 font-medium">মোট প্রদেয়:</span>
+              <span className="text-3xl font-black text-gray-900">
+                {idea.price?.toString().includes('৳') ? idea.price : `৳${idea.price}`}
+              </span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <p className="text-red-500 text-center mb-4">তথ্য লোড করা যাচ্ছে না।</p>
+        )}
 
         <div className="space-y-4">
           <button
             onClick={handlePurchase}
-            disabled={purchasing}
+            disabled={purchasing || !idea}
             className={`w-full bg-green-700 text-white py-5 rounded-2xl font-black text-lg transition-all shadow-lg shadow-green-200 ${
               purchasing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-800 active:scale-95'
             }`}
@@ -119,7 +105,7 @@ export default function PurchasePage() {
           </button>
           
           <Link 
-            href={`/ideas`}
+            href="/ideas"
             className="block text-center text-gray-400 font-bold hover:text-gray-600 transition-all"
           >
             বাতিল করুন
