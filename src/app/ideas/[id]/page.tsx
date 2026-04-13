@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/axios';
@@ -13,13 +13,8 @@ export default function IdeaDetailsPage() {
   const [user, setUser] = useState<any>(null);
   const [voting, setVoting] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (stored) setUser(JSON.parse(stored));
-    fetchIdea();
-  }, [id]);
-
-  const fetchIdea = async () => {
+  // fetchIdea-কে useCallback দিয়ে র‍্যাপ করা হয়েছে যেন এটি handleVote-এর ভেতরে কল করা যায়
+  const fetchIdea = useCallback(async () => {
     try {
       const res = await api.get(`/ideas/${id}`);
       setIdea(res.data);
@@ -30,20 +25,29 @@ export default function IdeaDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('user');
+    if (stored) setUser(JSON.parse(stored));
+    fetchIdea();
+  }, [id, fetchIdea]);
 
   const handleVote = async (value: number) => {
     if (!user) {
-      toast.error('Please login to vote!');
+      toast.error('ভোট দিতে আগে লগইন করুন!');
       return router.push('/login');
     }
+    
     setVoting(true);
     try {
-      await api.post(`/ideas/${id}/vote`, { value });
+      // রাউটটি ঠিক করে /votes/${id}/vote করা হয়েছে
+      await api.post(`/votes/${id}/vote`, { value });
       toast.success(value === 1 ? 'Upvoted! 👍' : 'Downvoted! 👎');
-      fetchIdea();
-    } catch (error) {
-      toast.error('Failed to vote!');
+      fetchIdea(); // নতুন সংখ্যা দেখানোর জন্য রি-ফেচ
+    } catch (error: any) {
+      console.error('Vote Error:', error);
+      toast.error(error.response?.data?.message || 'Failed to vote!');
     } finally {
       setVoting(false);
     }
@@ -76,9 +80,10 @@ export default function IdeaDetailsPage() {
     </div>
   );
 
-  const upvotes = idea.votes?.filter((v: any) => v.value === 1).length || 0;
-  const downvotes = idea.votes?.filter((v: any) => v.value === -1).length || 0;
-  const userVote = user ? idea.votes?.find((v: any) => v.userId === user.id) : null;
+  // ডাটাবেস থেকে আসা upvotes এবং downvotes সরাসরি ব্যবহার করা হচ্ছে
+  const upvotes = idea.upvotes || 0;
+  const downvotes = idea.downvotes || 0;
+  const userVote = idea.userVote; // সার্ভার থেকে সরাসরি userVote আসছে কি না চেক করুন
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-6">
@@ -98,7 +103,7 @@ export default function IdeaDetailsPage() {
             <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full ${
               idea.type === 'PAID' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
             }`}>
-              {idea.type === 'PAID' ? `💰 Paid - $${idea.price}` : '🆓 Free Idea'}
+              {idea.type === 'PAID' ? `💰 Paid - ৳${idea.price}` : '🆓 Free Idea'}
             </span>
           </div>
 
@@ -141,7 +146,7 @@ export default function IdeaDetailsPage() {
           </div>
         </div>
 
-        {/* --- Voting Section (Updated Style) --- */}
+        {/* Voting Section */}
         <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-8 mb-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
@@ -154,9 +159,9 @@ export default function IdeaDetailsPage() {
                 onClick={() => handleVote(1)}
                 disabled={voting}
                 className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black transition-all active:scale-95 ${
-                  userVote?.value === 1
-                    ? 'bg-green-700 text-white shadow-lg'
-                    : 'bg-white text-gray-700 hover:bg-green-50 hover:text-green-700 border border-transparent hover:border-green-100'
+                  userVote === 1
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 border border-transparent hover:border-blue-100'
                 }`}
               >
                 👍 {upvotes}
@@ -168,8 +173,8 @@ export default function IdeaDetailsPage() {
                 onClick={() => handleVote(-1)}
                 disabled={voting}
                 className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black transition-all active:scale-95 ${
-                  userVote?.value === -1
-                    ? 'bg-red-600 text-white shadow-lg'
+                  userVote === -1
+                    ? 'bg-red-500 text-white shadow-lg'
                     : 'bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100'
                 }`}
               >
