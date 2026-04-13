@@ -13,15 +13,20 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // হাইড্রেশন এরর এড়াতে এবং ইউজার ডাটা পেতে useEffect
   useEffect(() => {
     setMounted(true);
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser({
-        name: parsedUser.name || 'User',
-        role: parsedUser.role
-      });
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser({
+          name: parsedUser.name || 'User',
+          role: parsedUser.role
+        });
+      } catch (e) {
+        console.error("Error parsing user data", e);
+      }
     } else {
       setUser(null);
     }
@@ -35,6 +40,7 @@ export default function Navbar() {
     router.refresh();
   };
 
+  // মাউন্ট হওয়ার আগে কিছু রেন্ডার করবে না (ডার্ক মোডের জন্য জরুরি)
   if (!mounted) return null;
 
   return (
@@ -46,7 +52,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      <nav className="sticky top-0 z-50 bg-green-700 dark:bg-gray-900 text-white shadow-lg">
+      <nav className="sticky top-0 z-50 bg-green-700 dark:bg-gray-900 text-white shadow-lg border-b dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold flex items-center gap-2">
             🌱 <span className="hidden sm:inline">EcoSpark Hub</span>
@@ -58,24 +64,25 @@ export default function Navbar() {
             <Link href="/ideas" className={`hover:text-green-200 transition ${pathname === '/ideas' ? 'text-green-200 font-bold' : ''}`}>Ideas</Link>
             <Link href="/about" className="hover:text-green-200 transition">About Us</Link>
 
+            {/* ডার্ক মোড সুইচ */}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-full bg-green-800 dark:bg-gray-800 hover:bg-green-600 transition-all"
+              className="p-2 rounded-full bg-green-800 dark:bg-gray-800 hover:bg-green-600 dark:hover:bg-gray-700 transition-all border border-green-600 dark:border-gray-700"
             >
-              {theme === "dark" ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
+              {theme === "dark" ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-gray-200" />}
             </button>
 
             {user ? (
               <div className="flex items-center gap-4">
                 <Link
                   href={user.role === 'ADMIN' ? '/dashboard/admin' : '/dashboard/member'}
-                  className="flex items-center gap-1.5 bg-green-800 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-green-600 transition border border-green-500"
+                  className="flex items-center gap-1.5 bg-green-800 dark:bg-gray-800 px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-green-600 transition border border-green-500 dark:border-gray-600"
                 >
                   <LayoutDashboard size={16} /> Dashboard
                 </Link>
 
                 <Link href="/profile" className="flex items-center gap-2 group">
-                  <div className="w-9 h-9 bg-green-600 rounded-full flex items-center justify-center border-2 border-green-400 group-hover:border-white transition">
+                  <div className="w-9 h-9 bg-green-600 dark:bg-gray-700 rounded-full flex items-center justify-center border-2 border-green-400 group-hover:border-white transition">
                     <UserIcon size={18} />
                   </div>
                   <div className="flex flex-col">
@@ -104,8 +111,11 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-4">
-            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+            <button 
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-1.5 bg-green-800 dark:bg-gray-800 rounded-lg"
+            >
+              {theme === "dark" ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} />}
             </button>
             <button className="text-white text-2xl" onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? '✕' : '☰'}
@@ -113,9 +123,9 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu Content */}
         {menuOpen && (
-          <div className="md:hidden bg-green-800 dark:bg-gray-950 border-t border-green-600 px-6 py-6 flex flex-col gap-5">
+          <div className="md:hidden bg-green-800 dark:bg-gray-950 border-t border-green-600 dark:border-gray-800 px-6 py-6 flex flex-col gap-5 animate-in slide-in-from-top duration-300">
             <Link href="/" onClick={() => setMenuOpen(false)}>Home</Link>
             <Link href="/ideas" onClick={() => setMenuOpen(false)}>Ideas</Link>
             {user ? (
