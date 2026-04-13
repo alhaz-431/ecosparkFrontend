@@ -8,6 +8,7 @@ export default function HomePage() {
   const [ideas, setIdeas] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [hasSearched, setHasSearched] = useState(false); // সার্চ করা হয়েছে কি না চেক করার জন্য
 
   useEffect(() => {
     fetchIdeas();
@@ -29,12 +30,20 @@ export default function HomePage() {
     try {
       const res = await api.get(`/ideas?search=${search}`);
       setIdeas(res.data.ideas || []);
+      setHasSearched(true); // সার্চ রেজাল্ট আসলে এটি ট্রু হবে
+
+      // রেজাল্ট সেকশনে অটো স্ক্রল
+      setTimeout(() => {
+        const element = document.getElementById('featured-ideas-section');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     } catch (error) {
       console.error(error);
     }
   };
 
-  // স্ক্রল অ্যানিমেশন কনফিগ (Type safe)
   const fadeInUp: MotionProps = {
     initial: { opacity: 0, y: 40 },
     whileInView: { opacity: 1, y: 0 },
@@ -145,63 +154,68 @@ export default function HomePage() {
         </div>
       </motion.section>
 
-     {/* Featured Ideas Section */}
-<motion.section 
-  initial={fadeInUp.initial}
-  whileInView={fadeInUp.whileInView}
-  viewport={fadeInUp.viewport}
-  transition={fadeInUp.transition}
-  className="bg-green-50 py-24 px-6"
->
-  <div className="max-w-6xl mx-auto">
-    <h2 className="text-4xl font-extrabold text-center text-green-900 mb-16">Featured Ideas</h2>
-    
-    {loading ? (
-      <div className="flex justify-center items-center h-40">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
-      </div>
-    ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {/* --- এখান থেকে পরিবর্তন শুরু --- */}
-        {ideas.length > 0 ? (
-          ideas.slice(0, 6).map((idea) => (
-            <motion.div 
-              key={idea.id} 
-              whileHover={{ scale: 1.02 }}
-              className="bg-white rounded-3xl shadow-sm overflow-hidden border border-green-100 group"
-            >
-              <div className="h-56 bg-green-50 flex items-center justify-center overflow-hidden">
-                {idea.images?.[0] ? (
-                  <img src={idea.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                ) : (
-                  <span className="text-7xl group-hover:rotate-12 transition duration-500">🌿</span>
-                )}
-              </div>
-              <div className="p-8">
-                <h3 className="font-bold text-xl text-green-900 mb-3">{idea.title}</h3>
-                <p className="text-gray-500 text-sm line-clamp-3 leading-relaxed">{idea.description}</p>
-                
-                {/* সঠিক লিংক এবং প্রি-ফেচ অফ করা হলো */}
-                <Link 
-                  href={`/ideas/${idea.id}`} 
-                  prefetch={false} 
-                  className="mt-6 inline-block bg-green-700 text-white px-6 py-2 rounded-full font-bold hover:bg-green-800 transition"
-                >
-                  View Detail →
-                </Link>
-              </div>
-            </motion.div>
-          ))
-        ) : (
-          <div className="col-span-full text-center py-10 text-gray-400 font-bold">
-            No featured ideas found!
-          </div>
-        )}
-        {/* --- পরিবর্তন শেষ --- */}
-      </div>
-    )}
-  </div>
-</motion.section>
+      {/* Featured Ideas Section */}
+      <motion.section 
+        id="featured-ideas-section" // আইডি যোগ করা হলো স্ক্রল করার জন্য
+        initial={fadeInUp.initial}
+        whileInView={fadeInUp.whileInView}
+        viewport={fadeInUp.viewport}
+        transition={fadeInUp.transition}
+        className="bg-green-50 py-24 px-6 scroll-mt-20"
+      >
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-extrabold text-center text-green-900 mb-4">Featured Ideas</h2>
+          
+          {/* সার্চ রেজাল্ট টেক্সট */}
+          {hasSearched && (
+            <p className="text-center text-green-600 font-bold mb-12">
+              Showing {ideas.length} results for "{search}"
+            </p>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center items-center h-40">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+              {ideas.length > 0 ? (
+                ideas.slice(0, 6).map((idea) => (
+                  <motion.div 
+                    key={idea.id} 
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-white rounded-3xl shadow-sm overflow-hidden border border-green-100 group"
+                  >
+                    <div className="h-56 bg-green-50 flex items-center justify-center overflow-hidden">
+                      {idea.images?.[0] ? (
+                        <img src={idea.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+                      ) : (
+                        <span className="text-7xl group-hover:rotate-12 transition duration-500">🌿</span>
+                      )}
+                    </div>
+                    <div className="p-8">
+                      <h3 className="font-bold text-xl text-green-900 mb-3">{idea.title}</h3>
+                      <p className="text-gray-500 text-sm line-clamp-3 leading-relaxed">{idea.description}</p>
+                      
+                      <Link 
+                        href={`/ideas/${idea.id}`} 
+                        prefetch={false} 
+                        className="mt-6 inline-block bg-green-700 text-white px-6 py-2 rounded-full font-bold hover:bg-green-800 transition"
+                      >
+                        View Detail →
+                      </Link>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-10 text-gray-400 font-bold">
+                  No ideas found for your search!
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </motion.section>
 
       {/* CTA Section */}
       <motion.section 
