@@ -39,15 +39,19 @@ export default function IdeasPage() {
     const voteValue = voteType === 'UPVOTE' ? 1 : -1;
     setVotingId(ideaId);
 
-    // Optimistic Update: ক্লিক করার সাথে সাথেই সংখ্যা ও কালার চেঞ্জ হবে
+    // Optimistic Update: ক্লিক করার সাথে সাথেই UI আপডেট হবে
     const previousIdeas = [...ideas];
     const updatedIdeas = ideas.map((idea) => {
       if (idea.id === ideaId) {
         const isRemoving = idea.userVote === voteValue;
         return {
           ...idea,
-          upvotes: voteType === 'UPVOTE' ? (isRemoving ? idea.upvotes - 1 : (idea.userVote === -1 ? idea.upvotes + 1 : idea.upvotes + 1)) : (idea.userVote === 1 ? idea.upvotes - 1 : idea.upvotes),
-          downvotes: voteType === 'DOWNVOTE' ? (isRemoving ? idea.downvotes - 1 : (idea.userVote === 1 ? idea.downvotes + 1 : idea.downvotes + 1)) : (idea.userVote === -1 ? idea.downvotes - 1 : idea.downvotes),
+          upvotes: voteType === 'UPVOTE' 
+            ? (isRemoving ? (idea.upvotes || 0) - 1 : (idea.userVote === -1 ? (idea.upvotes || 0) + 1 : (idea.upvotes || 0) + 1)) 
+            : (idea.userVote === 1 ? (idea.upvotes || 0) - 1 : (idea.upvotes || 0)),
+          downvotes: voteType === 'DOWNVOTE' 
+            ? (isRemoving ? (idea.downvotes || 0) - 1 : (idea.userVote === 1 ? (idea.downvotes || 0) + 1 : (idea.downvotes || 0) + 1)) 
+            : (idea.userVote === -1 ? (idea.downvotes || 0) - 1 : (idea.downvotes || 0)),
           userVote: isRemoving ? 0 : voteValue,
         };
       }
@@ -83,6 +87,7 @@ export default function IdeasPage() {
                <select className="w-full border p-2.5 rounded-xl text-sm outline-none text-black bg-white">
                   <option value="">All Categories</option>
                   <option value="Water">Water</option>
+                  <option value="Recycling">Recycling</option>
                </select>
                <select className="w-full border p-2.5 rounded-xl text-sm outline-none text-black bg-white">
                   <option value="">Free & Paid</option>
@@ -95,7 +100,7 @@ export default function IdeasPage() {
         <main className="flex-1">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-pulse">
-               {[1, 2, 3].map((i) => <div key={i} className="h-80 bg-gray-200 rounded-3xl"></div>)}
+               {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="h-96 bg-gray-200 rounded-3xl"></div>)}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -116,16 +121,17 @@ export default function IdeasPage() {
                     </div>
                   </div>
 
+                  {/* Content Section - */}
                   <div className="p-6 flex-1 flex flex-col">
-                    <span className="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">{idea.category?.name || 'Water'}</span>
+                    <span className="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">{idea.category?.name || 'Idea'}</span>
                     <h3 className="font-bold text-xl text-gray-900 mb-2 line-clamp-1">{idea.title}</h3>
                     <p className="text-gray-500 text-xs mb-6 line-clamp-2 flex-1">{idea.description}</p>
 
-                    {/* Voting & Actions - আপনার দেওয়া বাটন কোডটুকু এখানে */}
+                    {/* Voting & Actions - */}
                     <div className="pt-4 border-t flex items-center justify-between mt-auto">
                       <div className="flex items-center bg-gray-100 rounded-2xl p-1 gap-1">
                         
-                        {/* Upvote Button (👍) */}
+                        {/* Upvote Button (👍) - */}
                         <button 
                           onClick={() => handleVote(idea.id, 'UPVOTE')}
                           disabled={votingId === idea.id}
@@ -143,7 +149,7 @@ export default function IdeasPage() {
                         
                         <div className="w-[1px] h-4 bg-gray-300 mx-0.5"></div>
 
-                        {/* Downvote Button (👎) */}
+                        {/* Downvote Button (👎) - */}
                         <button 
                           onClick={() => handleVote(idea.id, 'DOWNVOTE')}
                           disabled={votingId === idea.id}
@@ -160,9 +166,12 @@ export default function IdeasPage() {
                         </button>
                       </div>
 
-                      {/* View/Buy Button */}
+                      {/* View/Buy Link - */}
                       <Link 
-                        href={`/ideas/${idea.id}`}
+                        href={idea.type === 'PAID' 
+                          ? `/ideas/${idea.id}/purchase?title=${encodeURIComponent(idea.title)}&price=${idea.price}` 
+                          : `/ideas/${idea.id}`
+                        }
                         className={`px-4 py-2 rounded-xl text-xs font-black text-white transition-all active:scale-95 ${
                           idea.type === 'PAID' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-700 hover:bg-green-800'
                         }`}
