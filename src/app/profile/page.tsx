@@ -1,7 +1,8 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
-import { User, Mail, Calendar, Lightbulb, Trash2, ExternalLink } from 'lucide-react';
+import { User, Mail, Calendar, Lightbulb, Trash2, ExternalLink, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProfilePage() {
@@ -10,12 +11,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // লোকাল স্টোরেজ থেকে ইউজার অবজেক্ট পড়া
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
-      // ইউজারের আইডি দিয়ে তার পোস্ট করা আইডিয়াগুলো আনা
       fetchMyIdeas(parsedUser.id);
     } else {
       setLoading(false);
@@ -24,9 +23,7 @@ export default function ProfilePage() {
 
   const fetchMyIdeas = async (userId: string) => {
     try {
-      // ব্যাকএন্ডে authorId পাঠিয়ে শুধু নিজের আইডিয়া ফিল্টার করা
       const res = await api.get(`/ideas?authorId=${userId}`);
-      // ব্যাকএন্ড রেসপন্স অনুযায়ী ডেটা সেট করা
       setMyIdeas(res.data.ideas || res.data.data || []);
     } catch (error) {
       console.error("Error fetching ideas:", error);
@@ -36,27 +33,27 @@ export default function ProfilePage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this idea?')) return;
+    if (!confirm('আপনি কি নিশ্চিত যে এই আইডিয়াটি মুছে ফেলতে চান?')) return;
     try {
       await api.delete(`/ideas/${id}`);
       setMyIdeas(myIdeas.filter(idea => idea.id !== id));
-      alert('Idea deleted successfully!');
+      alert('আইডিয়াটি সফলভাবে মুছে ফেলা হয়েছে!');
     } catch (error) {
       console.error("Error deleting idea:", error);
-      alert('Failed to delete idea.');
+      alert('মুছে ফেলতে সমস্যা হয়েছে।');
     }
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center dark:bg-slate-950">
-       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
+       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
     </div>
   );
 
   if (!user) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 dark:bg-slate-950">
-       <p className="text-gray-500 dark:text-gray-400">Please login to view profile.</p>
-       <Link href="/login" className="bg-green-700 text-white px-6 py-2 rounded-full hover:bg-green-800 transition">
+       <p className="text-gray-500 dark:text-gray-400 font-bold">প্রোফাইল দেখতে আগে লগইন করুন।</p>
+       <Link href="/login" className="bg-emerald-700 text-white px-8 py-3 rounded-2xl hover:bg-emerald-800 transition-all font-black">
          Login Now
        </Link>
     </div>
@@ -66,73 +63,92 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 py-10 px-6 transition-colors">
       <div className="max-w-4xl mx-auto">
         
-        {/* Profile Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl overflow-hidden border dark:border-slate-800 mb-10 group">
-          <div className="h-32 bg-gradient-to-r from-green-600 to-emerald-500"></div>
+        {/* Profile Card Section */}
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl overflow-hidden border dark:border-slate-800 mb-10 group transition-all">
+          <div className="h-40 bg-gradient-to-r from-emerald-600 to-green-500"></div>
           <div className="px-8 pb-8">
-            <div className="relative -top-12 flex flex-col md:flex-row items-end gap-5">
-              <div className="h-32 w-32 bg-white dark:bg-slate-800 rounded-2xl border-4 border-white dark:border-slate-900 flex items-center justify-center text-5xl shadow-lg">
-                <span className="group-hover:scale-110 transition duration-300">👤</span>
+            <div className="relative -top-16 flex flex-col md:flex-row items-end gap-6">
+              <div className="h-36 w-36 bg-white dark:bg-slate-800 rounded-[2rem] border-8 border-white dark:border-slate-900 flex items-center justify-center text-6xl shadow-2xl">
+                <span className="group-hover:scale-110 transition duration-500">👤</span>
               </div>
               <div className="mb-4">
-                <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{user.name}</h1>
-                <p className="inline-block bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">
-                  {user.role}
-                </p>
+                <h1 className="text-4xl font-black text-gray-900 dark:text-white mb-1">{user.name}</h1>
+                <div className="flex gap-2 items-center">
+                  <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest">
+                    {user.role}
+                  </span>
+                  {/* Dashboard Link based on role */}
+                  <Link href={user.role === 'ADMIN' ? '/admin/dashboard' : '/dashboard'} className="text-[10px] text-gray-400 hover:text-emerald-600 font-bold underline transition-all">
+                    Go to Dashboard
+                  </Link>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-              <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                <Mail size={18} className="text-green-500" />
-                <span className="text-sm font-medium">{user.email}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 -mt-6">
+              <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                <Mail size={20} className="text-emerald-500" />
+                <span className="text-sm font-bold">{user.email}</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                <Calendar size={18} className="text-green-500" />
-                <span className="text-sm font-medium">Member Since: {new Date().toLocaleDateString()}</span>
+              <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                <Calendar size={20} className="text-emerald-500" />
+                <span className="text-sm font-bold">Joined: {new Date().toLocaleDateString('bn-BD')}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* My Ideas Section */}
+        {/* Header with New Idea Button */}
         <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <Lightbulb className="text-yellow-500 fill-yellow-500" size={24} />
-              My Published Ideas
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl">
+                <Lightbulb className="text-yellow-600 fill-yellow-600" size={24} />
+              </div>
+              My Ideas
             </h2>
-            <Link href={user.role === 'ADMIN' ? '/admin/dashboard' : '/dashboard'} className="text-sm bg-green-700 text-white px-4 py-2 rounded-full hover:bg-green-800 transition shadow-md">
-              + New Idea
+            {/* 404 Fix: Link path updated to /ideas/create */}
+            <Link 
+              href="/ideas/create" 
+              className="flex items-center gap-2 bg-emerald-700 text-white px-6 py-3 rounded-2xl hover:bg-emerald-800 transition-all shadow-lg shadow-emerald-200 dark:shadow-none font-black text-sm active:scale-95"
+            >
+              <PlusCircle size={18} />
+              New Idea
             </Link>
         </div>
 
+        {/* Ideas Grid */}
         {myIdeas.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 p-12 rounded-3xl text-center border-2 border-dashed dark:border-slate-800">
-            <p className="text-gray-500 dark:text-gray-400 font-medium">You haven't shared any ideas yet.</p>
+          <div className="bg-white dark:bg-slate-900 p-20 rounded-[3rem] text-center border-2 border-dashed border-gray-200 dark:border-slate-800">
+            <div className="text-5xl mb-4">🍃</div>
+            <p className="text-gray-400 dark:text-gray-500 font-black text-lg">আপনি এখনো কোনো আইডিয়া শেয়ার করেননি।</p>
+            <Link href="/ideas/create" className="text-emerald-600 font-bold mt-2 inline-block hover:underline">প্রথম আইডিয়া পোস্ট করুন</Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {myIdeas.map((idea) => (
-              <div key={idea.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-md border dark:border-slate-800 flex flex-col hover:shadow-xl transition-all duration-300 group overflow-hidden">
-                <div className="p-5">
-                  <h3 className="font-bold text-lg dark:text-white line-clamp-1 group-hover:text-green-600 transition">{idea.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-xs line-clamp-2 mt-2 leading-relaxed">
+              <div key={idea.id} className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-800 flex flex-col hover:shadow-2xl transition-all duration-500 group overflow-hidden">
+                <div className="p-8">
+                  <h3 className="font-black text-xl text-gray-900 dark:text-white line-clamp-1 group-hover:text-emerald-600 transition-colors mb-3 leading-tight">
+                    {idea.title}
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 font-medium leading-relaxed">
                     {idea.description}
                   </p>
                   
-                  <div className="mt-5 pt-4 border-t dark:border-slate-800 flex justify-between items-center">
+                  <div className="mt-8 pt-6 border-t border-gray-50 dark:border-slate-800 flex justify-between items-center">
                     <Link 
                       href={`/ideas/${idea.id}`} 
-                      className="text-green-600 hover:text-green-700 font-bold text-xs flex items-center gap-1"
+                      className="text-emerald-600 hover:text-emerald-700 font-black text-xs flex items-center gap-2 uppercase tracking-widest"
                     >
-                      View Details <ExternalLink size={12} />
+                      View Project <ExternalLink size={14} />
                     </Link>
                     
                     <button 
                       onClick={() => handleDelete(idea.id)}
-                      className="text-red-400 hover:text-red-600 transition p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full"
+                      className="bg-red-50 dark:bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-white transition-all p-3 rounded-2xl active:scale-90"
+                      title="Delete Idea"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
