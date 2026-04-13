@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
@@ -41,6 +42,7 @@ export default function IdeasPage() {
     }
   };
 
+  // ভোট দেওয়ার ফাংশন (ফিক্সড)
   const handleVote = async (ideaId: string, voteType: 'UPVOTE' | 'DOWNVOTE') => {
     const token = localStorage.getItem('token');
     
@@ -49,24 +51,19 @@ export default function IdeasPage() {
       return router.push('/login');
     }
 
-    // আপনার ব্যাকএন্ড কন্ট্রোলার অনুযায়ী value সেট করা (1 অথবা -1)
     const voteValue = voteType === 'UPVOTE' ? 1 : -1;
-
     setVotingId(ideaId);
+
     try {
-      // ব্যাকএন্ডে { value: 1/-1 } ফরম্যাটে ডাটা পাঠানো হচ্ছে
-      const res = await api.post(`/votes/${ideaId}`, { value: voteValue });
+      // আপনার ব্যাকএন্ড রাউট /:id/vote অনুযায়ী এখানে রিকোয়েস্ট পাঠানো হচ্ছে
+      const res = await api.post(`/votes/${ideaId}/vote`, { value: voteValue }); 
       
-      // ব্যাকএন্ড থেকে আসা মেসেজ দেখানো (যেমন: 'Vote added', 'Vote updated', 'Vote removed')
-      toast.success(res.data.message || 'Vote recorded! 🎉');
-      
-      // ভোট দেওয়ার পর ডাটা রিফ্রেশ করা যাতে আপভোট/ডাউনভোট সংখ্যা আপডেট হয়
+      toast.success(res.data.message || 'ভোট সফল হয়েছে! 🎉');
       fetchIdeas(); 
 
     } catch (error: any) {
       console.error("Voting Error Detail:", error);
-      // সঠিক এরর মেসেজ হ্যান্ডলিং
-      const msg = error.response?.data?.message || error.message || 'Failed to vote!';
+      const msg = error.response?.data?.message || error.message || 'ভোট দেওয়া সম্ভব হয়নি।';
       toast.error(msg);
     } finally {
       setVotingId(null);
@@ -74,7 +71,7 @@ export default function IdeasPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 text-black">
       {/* Header Section */}
       <section className="bg-gradient-to-br from-green-800 to-emerald-600 py-16 px-6 text-center text-white">
         <h1 className="text-4xl font-extrabold mb-4 text-white">🌱 All Sustainability Ideas</h1>
@@ -185,7 +182,9 @@ export default function IdeasPage() {
                         </div>
 
                         <Link 
-                          href={idea.type === 'PAID' ? `/ideas/${idea.id}/purchase` : `/ideas/${idea.id}`}
+                          href={idea.type === 'PAID' 
+                            ? `/ideas/${idea.id}/purchase?title=${encodeURIComponent(idea.title)}&price=${idea.price}` 
+                            : `/ideas/${idea.id}`}
                           className={`px-4 py-2 rounded-xl text-xs font-black text-white transition-all active:scale-95 ${idea.type === 'PAID' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-700 hover:bg-green-800'}`}
                         >
                           {idea.type === 'PAID' ? 'Buy 💰' : 'View →'}
