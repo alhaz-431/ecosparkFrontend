@@ -25,7 +25,6 @@ export default function PurchasePage() {
         const res = await api.get(`/ideas/${id}`);
         setIdea(res.data.data || res.data);
       } catch (error: any) {
-        // যদি অথরাইজেশন এরর হয়, তবে কুয়েরি প্যারামিটার থেকে ডাটা সেট করবে
         if (error.response?.status === 403 || error.response?.status === 401) {
           setIdea({
             id: id,
@@ -44,7 +43,6 @@ export default function PurchasePage() {
   const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // টোকেন চেক (লগইন ছাড়া পেমেন্ট হবে না)
     const token = localStorage.getItem('token');
     if (!token) {
       toast.error('পেমেন্ট করতে আগে লগইন করুন।');
@@ -53,21 +51,23 @@ export default function PurchasePage() {
 
     setPurchasing(true);
     try {
-      const res = await api.post(`/ideas/${id}/purchase`);
+      
+      const res = await api.post(`/payments/${id}/payment-intent`);
 
       if (res.status === 201 || res.status === 200) {
-        toast.success('অভিনন্দন! আইডিয়াটি সফলভাবে কেনা হয়েছে। 🎉');
+        toast.success('অভিনন্দন! পেমেন্ট ইনটেন্ট তৈরি হয়েছে এবং আইডিয়াটি আনলক হয়েছে। 🎉');
+        // পেমেন্ট সফল হওয়ার পর আইডিয়া ডিটেইলস পেজে পাঠিয়ে দিবে
         router.push(`/ideas/${id}`); 
       }
     } catch (error: any) {
       console.error('Payment Error:', error);
-      toast.error(error.response?.data?.message || 'পেমেন্ট গেটওয়েতে সমস্যা হচ্ছে।');
+      // যদি ৪MD (403) আসে, তার মানে টোকেন বা পারমিশনে সমস্যা আছে
+      toast.error(error.response?.data?.message || 'পেমেন্ট প্রসেস করতে সমস্যা হচ্ছে। আপনার লগইন চেক করুন।');
     } finally {
       setPurchasing(false);
     }
   };
 
-  // ডিসপ্লে প্রাইস নির্ধারণ (নিশ্চিত করা হয়েছে যেন ০ না হয়)
   const displayPrice = idea?.price || priceFromQuery || '70';
 
   if (loading && !titleFromQuery) return (
@@ -87,7 +87,6 @@ export default function PurchasePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           
-          {/* Order Summary Section */}
           <div className="space-y-8">
             <div>
               <h1 className="text-4xl font-black text-gray-900 mb-2">Secure Checkout</h1>
@@ -123,16 +122,14 @@ export default function PurchasePage() {
 
             <div className="flex items-center gap-4 text-gray-400 text-sm px-4">
               <ShieldCheck size={24} className="text-emerald-500 shrink-0" />
-              <p className="font-medium">পেমেন্ট করার পর আপনার ড্যাশবোর্ড থেকে আইডিয়াটি অ্যাক্সেস করতে পারবেন।</p>
+              <p className="font-medium">পেমেন্ট করার পর আপনার ড্যাশবোর্ড থেকে আইডিয়াটি অ্যাক্সেস করতে পারবেন।</p>
             </div>
           </div>
 
-          {/* Payment Details Section */}
           <div className="bg-white p-10 rounded-[50px] shadow-2xl shadow-gray-200/50 border border-gray-50">
             <h2 className="text-2xl font-black text-gray-900 mb-10">Card Details</h2>
 
             <form onSubmit={handlePurchase} className="space-y-6">
-              {/* Card Number */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Card Number</label>
                 <div className="relative">
@@ -148,15 +145,14 @@ export default function PurchasePage() {
                 </div>
               </div>
 
-              {/* Expiry and CVC */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Expiry Date</label>
                   <input 
                     type="text" 
                     required
-                    name="card_expiry" // নাম পরিবর্তন জিমেইল অটোফিল আটকাতে
-                    autoComplete="cc-exp" // ব্রাউজারকে কার্ড এক্সপায়ারি বোঝাতে
+                    name="card_expiry"
+                    autoComplete="cc-exp"
                     placeholder="12 / 26" 
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-5 px-6 outline-none focus:border-emerald-500 transition-all font-bold text-lg text-center"
                   />
@@ -175,7 +171,6 @@ export default function PurchasePage() {
                 </div>
               </div>
 
-              {/* Cardholder Name */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Cardholder Name</label>
                 <input 
@@ -188,7 +183,6 @@ export default function PurchasePage() {
                 />
               </div>
 
-              {/* Submit Button */}
               <button 
                 type="submit"
                 disabled={purchasing || !idea}
