@@ -1,9 +1,20 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import api from '@/lib/axios';
-import { CheckCircle, XCircle, Clock, Lightbulb, Users } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  Lightbulb, 
+  Users, 
+  LogOut,
+  TrendingUp,
+  Globe
+} from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function AdminDashboard() {
   const [ideas, setIdeas] = useState<any[]>([]);
@@ -25,27 +36,23 @@ export default function AdminDashboard() {
       return;
     }
     setUser(parsedUser);
-    fetchIdeas();
-    fetchUsers();
-  }, []);
+    fetchData();
+  }, [router]);
 
-  const fetchIdeas = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/admin/ideas');
-      setIdeas(res.data || []);
+      const [ideasRes, usersRes] = await Promise.all([
+        api.get('/admin/ideas'),
+        api.get('/admin/users')
+      ]);
+      setIdeas(ideasRes.data || ideasRes.data.data || []);
+      setUsers(usersRes.data || usersRes.data.data || []);
     } catch (error) {
-      console.error('Error fetching ideas:', error);
+      console.error('Error fetching admin data:', error);
+      toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const res = await api.get('/admin/users');
-      setUsers(res.data || []);
-    } catch (error) {
-      console.error('Error fetching users:', error);
     }
   };
 
@@ -54,10 +61,11 @@ export default function AdminDashboard() {
       let feedbackNote = '';
       if (status === 'REJECTED') {
         feedbackNote = prompt('Enter rejection reason:') || '';
+        if (!feedbackNote) return;
       }
       await api.patch(`/admin/ideas/${id}/status`, { status, feedbackNote });
       toast.success(`Idea ${status.toLowerCase()} successfully!`);
-      fetchIdeas();
+      fetchData();
     } catch (error) {
       toast.error('Failed to update status');
     }
@@ -67,175 +75,96 @@ export default function AdminDashboard() {
     try {
       await api.patch(`/admin/users/${id}/toggle`);
       toast.success('User status updated!');
-      fetchUsers();
+      fetchData();
     } catch (error) {
       toast.error('Failed to update user');
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
+
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 lg:p-10">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-500 p-8 mb-10 shadow-lg">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-white mb-2">⚙️ Admin Dashboard</h1>
-            <p className="text-emerald-50 font-medium">Manage and approve sustainability ideas</p>
-          </div>
-          <div className="flex gap-4">
-            <div className="bg-white/20 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/30 text-white text-center">
-              <p className="text-xs uppercase font-black opacity-80">Total Ideas</p>
-              <p className="text-2xl font-black">{ideas.length}</p>
-            </div>
-            <div className="bg-white/20 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/30 text-white text-center">
-              <p className="text-xs uppercase font-black opacity-80">Pending</p>
-              <p className="text-2xl font-black">{ideas.filter(i => i.status === 'UNDER_REVIEW').length}</p>
-            </div>
-            <div className="bg-white/20 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/30 text-white text-center">
-              <p className="text-xs uppercase font-black opacity-80">Users</p>
-              <p className="text-2xl font-black">{users.length}</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex">
+      <Toaster position="top-center" />
+      <aside className="w-72 bg-emerald-900 text-white hidden lg:flex flex-col p-8 sticky top-0 h-screen">
+        <div className="mb-12">
+          <h2 className="text-2xl font-black tracking-tighter">EcoSpark Admin</h2>
+          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mt-1">Management Portal</p>
         </div>
-        <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-      </div>
+        <nav className="flex-1 space-y-2">
+          <button onClick={() => setActiveTab('ideas')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-black text-sm transition-all ${activeTab === 'ideas' ? 'bg-emerald-800 text-white shadow-lg' : 'text-emerald-100/60 hover:bg-emerald-800/50'}`}><Lightbulb size={20} /> Ideas Management</button>
+          <button onClick={() => setActiveTab('users')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-black text-sm transition-all ${activeTab === 'users' ? 'bg-emerald-800 text-white shadow-lg' : 'text-emerald-100/60 hover:bg-emerald-800/50'}`}><Users size={20} /> User Directory</button>
+          <Link href="/" className="w-full flex items-center gap-3 p-4 text-emerald-100/60 hover:bg-emerald-800/50 rounded-2xl font-black text-sm transition-all"><Globe size={20} /> View Website</Link>
+        </nav>
+        <button onClick={handleLogout} className="flex items-center gap-3 p-4 text-rose-300 hover:bg-rose-900/30 rounded-2xl font-black text-sm transition-all mt-auto"><LogOut size={20} /> Logout</button>
+      </aside>
 
-      {/* Tabs */}
-      <div className="flex gap-4 mb-6">
-        <button
-          onClick={() => setActiveTab('ideas')}
-          className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'ideas' ? 'bg-green-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-        >
-          💡 Ideas
-        </button>
-        <button
-          onClick={() => setActiveTab('users')}
-          className={`px-6 py-2 rounded-full font-bold transition ${activeTab === 'users' ? 'bg-green-700 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
-        >
-          👥 Users
-        </button>
-      </div>
+      <main className="flex-1 p-6 lg:p-12 overflow-y-auto">
+        <div className="relative overflow-hidden rounded-[48px] bg-white p-10 mb-12 border border-gray-100 shadow-sm">
+          <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-2">Admin Control Center</h1>
+          <p className="text-gray-500 font-medium">Review submissions and manage community members</p>
+        </div>
 
-      {/* Ideas Tab */}
-      {activeTab === 'ideas' && (
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-50 flex items-center gap-2">
-            <Lightbulb className="text-emerald-500" />
-            <h3 className="font-black text-gray-800 text-lg">All Ideas</h3>
-          </div>
-          <div className="overflow-x-auto">
+        {activeTab === 'ideas' ? (
+          <div className="bg-white rounded-[48px] shadow-sm border border-gray-100 overflow-hidden">
             <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 text-gray-400 text-xs font-black uppercase tracking-widest">
-                  <th className="px-8 py-5 text-left">Idea Details</th>
-                  <th className="px-8 py-5 text-left">Author</th>
-                  <th className="px-8 py-5 text-left">Category</th>
-                  <th className="px-8 py-5 text-center">Status</th>
-                  <th className="px-8 py-5 text-right">Actions</th>
+              <thead className="bg-gray-50/50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
+                <tr>
+                  <th className="px-8 py-6 text-left">Idea Details</th>
+                  <th className="px-8 py-6 text-left">Author</th>
+                  <th className="px-8 py-6 text-center">Status</th>
+                  <th className="px-8 py-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {ideas.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-8 py-20 text-center text-gray-400">No ideas yet.</td>
+                {ideas.map((idea) => (
+                  <tr key={idea.id} className="hover:bg-gray-50/50 transition-all">
+                    <td className="px-8 py-6"><p className="font-black text-gray-900 mb-1">{idea.title}</p></td>
+                    <td className="px-8 py-6"><p className="text-sm font-bold text-gray-700">{idea.author?.name || 'Unknown'}</p></td>
+                    <td className="px-8 py-6 text-center">
+                      <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${idea.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600' : idea.status === 'REJECTED' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
+                        {idea.status}
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex justify-end gap-3">
+                        {idea.status !== 'APPROVED' && <button onClick={() => handleStatusUpdate(idea.id, 'APPROVED')} className="px-5 py-2.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl">Approve</button>}
+                        {idea.status !== 'REJECTED' && <button onClick={() => handleStatusUpdate(idea.id, 'REJECTED')} className="px-5 py-2.5 bg-white border border-rose-100 text-rose-600 text-[10px] font-black uppercase tracking-widest rounded-xl">Reject</button>}
+                      </div>
+                    </td>
                   </tr>
-                ) : (
-                  ideas.map((idea) => (
-                    <tr key={idea.id} className="hover:bg-gray-50 transition-all duration-300">
-                      <td className="px-8 py-6">
-                        <p className="font-bold text-gray-900 text-base mb-1">{idea.title}</p>
-                        <p className="text-xs text-gray-500 line-clamp-1">{idea.description}</p>
-                      </td>
-                      <td className="px-8 py-6">
-                        <p className="text-sm text-gray-600">{idea.author?.name}</p>
-                        <p className="text-xs text-gray-400">{idea.author?.email}</p>
-                      </td>
-                      <td className="px-8 py-6">
-                        <span className="inline-block bg-blue-50 text-blue-600 text-xs font-bold px-3 py-1 rounded-lg uppercase">
-                          {idea.category?.name || 'General'}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6 text-center">
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold uppercase ${
-                          idea.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                          idea.status === 'UNDER_REVIEW' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
-                          idea.status === 'REJECTED' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
-                          'bg-gray-50 text-gray-600 border border-gray-100'
-                        }`}>
-                          {idea.status === 'APPROVED' ? <CheckCircle size={12}/> : <Clock size={12}/>}
-                          {idea.status}
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 text-right">
-                        <div className="flex justify-end gap-2">
-                          {idea.status !== 'APPROVED' && (
-                            <button
-                              onClick={() => handleStatusUpdate(idea.id, 'APPROVED')}
-                              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition"
-                            >
-                              ✅ Approve
-                            </button>
-                          )}
-                          {idea.status !== 'REJECTED' && (
-                            <button
-                              onClick={() => handleStatusUpdate(idea.id, 'REJECTED')}
-                              className="px-4 py-2 bg-white border border-rose-200 text-rose-600 text-xs font-bold rounded-xl hover:bg-rose-50 transition"
-                            >
-                              ❌ Reject
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-
-      {/* Users Tab */}
-      {activeTab === 'users' && (
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-50 flex items-center gap-2">
-            <Users className="text-emerald-500" />
-            <h3 className="font-black text-gray-800 text-lg">All Users</h3>
-          </div>
-          <div className="space-y-4 p-6">
+        ) : (
+          <div className="bg-white rounded-[48px] shadow-sm border border-gray-100 p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             {users.map((u) => (
-              <div key={u.id} className="bg-gray-50 rounded-2xl p-4 flex justify-between items-center">
+              <div key={u.id} className="bg-gray-50 rounded-3xl p-6 flex justify-between items-center border border-gray-100">
                 <div>
-                  <h3 className="font-bold text-gray-800">{u.name}</h3>
-                  <p className="text-gray-500 text-sm">{u.email}</p>
-                  <div className="flex gap-2 mt-2">
-                    <span className={`text-xs px-3 py-1 rounded-full font-bold ${u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {u.role}
-                    </span>
-                    <span className={`text-xs px-3 py-1 rounded-full font-bold ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {u.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
+                  <h3 className="font-black text-gray-900">{u.name}</h3>
+                  <p className="text-gray-400 text-xs font-medium">{u.email}</p>
                 </div>
                 {u.id !== user?.id && (
-                  <button
-                    onClick={() => handleToggleUser(u.id)}
-                    className={`px-4 py-2 rounded-full text-sm font-bold ${u.isActive ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
-                  >
-                    {u.isActive ? 'Deactivate' : 'Activate'}
+                  <button onClick={() => handleToggleUser(u.id)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${u.isActive ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-700'}`}>
+                    {u.isActive ? 'Ban User' : 'Unban User'}
                   </button>
                 )}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </main>
     </div>
   );
 }

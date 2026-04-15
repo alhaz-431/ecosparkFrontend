@@ -1,215 +1,204 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import api from '@/lib/axios';
-import toast from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+import toast, { Toaster } from 'react-hot-toast';
+import { 
+  Search, 
+  Filter, 
+  ChevronLeft, 
+  ChevronRight, 
+  ThumbsUp, 
+  ThumbsDown,
+  Calendar,
+  Tag,
+  ArrowUpDown
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function IdeasPage() {
   const [ideas, setIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const [sort, setSort] = useState('recent');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [votingId, setVotingId] = useState<string | null>(null);
-  
-  // ফিল্টার স্টেটসমূহ
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedType, setSelectedType] = useState("");
-  
-  const router = useRouter();
 
-  // ক্যাটাগরি লিস্ট (আপনার প্রজেক্টের থিম অনুযায়ী)
-  const categories = [
-    "All Categories", 
-    "Waste Management", 
-    "Recycling", 
-    "Water", 
-    "Renewable Energy", 
-    "Sustainable Farming"
-  ];
+  const categories = ["Energy", "Waste", "Transportation", "Water", "Farming"];
 
   const fetchIdeas = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/ideas');
-      const fetchedIdeas = res.data.ideas || res.data.data || [];
-      setIdeas(Array.isArray(fetchedIdeas) ? fetchedIdeas : []);
+      const res = await api.get(`/ideas?search=${search}&category=${category}&sort=${sort}&page=${page}&limit=10`);
+      setIdeas(res.data.ideas || res.data.data || []);
+      setTotalPages(res.data.totalPages || 1);
     } catch (error) {
-      console.error('Fetch Error:', error);
-      toast.error("আইডিয়াগুলো লোড করা সম্ভব হয়নি।");
+      console.error(error);
+      toast.error('Failed to load ideas');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [search, category, sort, page]);
 
   useEffect(() => {
     fetchIdeas();
   }, [fetchIdeas]);
 
-  // ফিল্টারিং লজিক
-  const filteredIdeas = useMemo(() => {
-    return ideas.filter(idea => {
-      const matchesCategory = selectedCategory === "" || 
-                              idea.category?.name === selectedCategory || 
-                              idea.category === selectedCategory;
-      const matchesType = selectedType === "" || idea.type === selectedType;
-      return matchesCategory && matchesType;
-    });
-  }, [ideas, selectedCategory, selectedType]);
-
-  const handleVote = async (ideaId: string, voteType: 'UPVOTE' | 'DOWNVOTE') => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('ভোট দিতে আগে লগইন করুন!');
-      return router.push('/login');
-    }
-
-    const voteValue = voteType === 'UPVOTE' ? 1 : -1;
-    setVotingId(ideaId);
-
-    const previousIdeas = [...ideas];
-    const updatedIdeas = ideas.map((idea) => {
-      if (idea.id === ideaId) {
-        return {
-          ...idea,
-          upvotes: voteType === 'UPVOTE' ? (idea.userVote === 1 ? (idea.upvotes || 0) - 1 : (idea.upvotes || 0) + 1) : (idea.userVote === 1 ? (idea.upvotes || 0) - 1 : (idea.upvotes || 0)),
-          downvotes: voteType === 'DOWNVOTE' ? (idea.userVote === -1 ? (idea.downvotes || 0) - 1 : (idea.downvotes || 0) + 1) : (idea.userVote === -1 ? (idea.downvotes || 0) - 1 : (idea.downvotes || 0)),
-          userVote: idea.userVote === voteValue ? 0 : voteValue,
-        };
-      }
-      return idea;
-    });
-    setIdeas(updatedIdeas);
-
+  const handleVote = async (id: string, type: 'up' | 'down') => {
+    setVotingId(id);
     try {
-      await api.post(`/votes/${ideaId}/vote`, { value: voteValue });
+      await api.post(`/ideas/${id}/vote`, { type });
+      toast.success('Vote recorded!');
+      fetchIdeas(); // রিফ্রেশ ডাটা
     } catch (error: any) {
-      setIdeas(previousIdeas); 
-      toast.error(error.response?.data?.message || 'ভোট দেওয়া সম্ভব হয়নি।');
+      toast.error(error.response?.data?.message || 'Voting failed');
     } finally {
       setVotingId(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-black">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-green-800 to-emerald-600 py-16 px-6 text-center text-white">
-        <h1 className="text-4xl font-extrabold mb-4 font-black">🌱 EcoSpark Ideas</h1>
-        <p className="text-green-50 text-lg mb-8 font-medium">Sustainability প্রজেক্টে ভোট দিন এবং অংশগ্রহণ করুন</p>
-      </section>
+    <div className="bg-gray-50 min-h-screen py-12 px-6">
+      <Toaster position="top-center" />
+      
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-12 text-center">
+          <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">Community Ideas</h1>
+          <p className="text-gray-500 font-medium">Explore and support sustainable projects from our community.</p>
+        </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8">
-        {/* Sidebar Filters */}
-        <aside className="w-full lg:w-64 flex-shrink-0">
-          <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 sticky top-10">
-            <h3 className="font-black text-gray-800 mb-4 uppercase text-xs tracking-widest">🔍 Filters</h3>
-            <div className="space-y-4">
-               {/* Category Dropdown */}
-               <select 
-                 value={selectedCategory}
-                 onChange={(e) => setSelectedCategory(e.target.value)}
-                 className="w-full border border-gray-200 p-3 rounded-xl text-sm outline-none text-black bg-gray-50 font-bold focus:border-emerald-500"
-               >
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat === "All Categories" ? "" : cat}>
-                      {cat}
-                    </option>
-                  ))}
-               </select>
-
-               {/* Type Dropdown (Free/Paid) */}
-               <select 
-                 value={selectedType}
-                 onChange={(e) => setSelectedType(e.target.value)}
-                 className="w-full border border-gray-200 p-3 rounded-xl text-sm outline-none text-black bg-gray-50 font-bold focus:border-emerald-500"
-               >
-                  <option value="">Free & Paid</option>
-                  <option value="FREE">Free Only</option>
-                  <option value="PAID">Paid Only</option>
-               </select>
-            </div>
+        {/* Filters & Search */}
+        <div className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100 mb-10 flex flex-col lg:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input 
+              type="text" 
+              placeholder="Search ideas..." 
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-emerald-500/20 transition-all font-medium"
+            />
           </div>
-        </aside>
+          
+          <div className="flex flex-wrap gap-4 w-full lg:w-auto">
+            <select 
+              value={category}
+              onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+              className="bg-gray-50 px-4 py-3 rounded-2xl outline-none font-bold text-gray-700 cursor-pointer"
+            >
+              <option value="">All Categories</option>
+              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
 
-        {/* Main Content Area */}
-        <main className="flex-1">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-pulse">
-               {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="h-96 bg-gray-200 rounded-3xl"></div>)}
-            </div>
-          ) : filteredIdeas.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
-              <p className="text-gray-400 font-bold text-lg">এই ক্যাটাগরিতে কোনো আইডিয়া পাওয়া যায়নি।</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredIdeas.map((idea) => (
-                <div key={idea.id} className="bg-white rounded-[2rem] shadow-sm border border-gray-100 flex flex-col overflow-hidden hover:shadow-xl transition-all duration-300">
-                  <div className="relative h-48 bg-gray-100">
+            <select 
+              value={sort}
+              onChange={(e) => { setSort(e.target.value); setPage(1); }}
+              className="bg-gray-50 px-4 py-3 rounded-2xl outline-none font-bold text-gray-700 cursor-pointer"
+            >
+              <option value="recent">Recent First</option>
+              <option value="top_voted">Top Voted</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Ideas Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {[1, 2, 4, 5].map(i => <div key={i} className="h-64 bg-white rounded-3xl animate-pulse"></div>)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {ideas.length > 0 ? (
+              ideas.map((idea) => (
+                <motion.div 
+                  key={idea.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white p-8 rounded-[40px] shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 group hover:shadow-xl hover:shadow-emerald-100/20 transition-all"
+                >
+                  <div className="w-full md:w-48 h-48 bg-gray-50 rounded-3xl overflow-hidden shrink-0">
                     <img 
-                      src={idea.images?.[0] || 'https://via.placeholder.com/400x300'} 
-                      className="w-full h-full object-cover" 
-                      alt={idea.title} 
+                      src={idea.images?.[0] || 'https://picsum.photos/seed/eco/400/400'} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                      referrerPolicy="no-referrer"
                     />
-                    <div className="absolute top-4 right-4">
-                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase text-white shadow-lg ${idea.type === 'PAID' ? 'bg-orange-500' : 'bg-green-600'}`}>
-                        {idea.type === 'PAID' ? `৳${idea.price || 0}` : 'Free'}
-                      </span>
-                    </div>
                   </div>
+                  
+                  <div className="flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                          {idea.category?.name || idea.category || 'General'}
+                        </span>
+                        {idea.isPaid && (
+                          <span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                            Paid
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-xl font-black text-gray-900 mb-2 line-clamp-1">{idea.title}</h3>
+                      <p className="text-gray-500 text-sm line-clamp-2 mb-4 font-medium">{idea.description}</p>
+                    </div>
 
-                  <div className="p-7 flex-1 flex flex-col">
-                    <span className="text-[10px] font-black text-emerald-600 mb-2 uppercase tracking-[0.2em]">{idea.category?.name || idea.category || 'Idea'}</span>
-                    <h3 className="font-black text-xl text-gray-900 mb-3 line-clamp-1 leading-tight">{idea.title}</h3>
-                    <p className="text-gray-500 text-sm mb-6 line-clamp-2 flex-1 font-medium">{idea.description}</p>
-
-                    <div className="pt-5 border-t border-gray-50 flex items-center justify-between mt-auto">
-                      {/* Vote Buttons */}
-                      <div className="flex items-center bg-gray-50 border border-gray-100 rounded-2xl p-1 gap-1">
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                      <div className="flex items-center gap-4">
                         <button 
-                          onClick={() => handleVote(idea.id, 'UPVOTE')}
+                          onClick={() => handleVote(idea.id, 'up')}
                           disabled={votingId === idea.id}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 ${
-                            idea.userVote === 1 ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-white text-gray-500'
-                          }`}
+                          className="flex items-center gap-1.5 text-gray-500 hover:text-emerald-600 transition-colors font-bold text-sm"
                         >
-                          <span className="text-lg">👍</span>
-                          <span className="font-black text-xs">{idea.upvotes || 0}</span>
+                          <ThumbsUp size={18} /> {idea.upvotes || 0}
                         </button>
-                        
-                        <div className="w-[1px] h-4 bg-gray-200 mx-1"></div>
-
                         <button 
-                          onClick={() => handleVote(idea.id, 'DOWNVOTE')}
+                          onClick={() => handleVote(idea.id, 'down')}
                           disabled={votingId === idea.id}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 ${
-                            idea.userVote === -1 ? 'bg-red-500 text-white shadow-lg' : 'hover:bg-white text-gray-500'
-                          }`}
+                          className="flex items-center gap-1.5 text-gray-500 hover:text-rose-600 transition-colors font-bold text-sm"
                         >
-                          <span className="text-lg">👎</span>
-                          <span className="font-black text-xs">{idea.downvotes || 0}</span>
+                          <ThumbsDown size={18} /> {idea.downvotes || 0}
                         </button>
                       </div>
-
-                      {/* Action Button */}
                       <Link 
-                        href={idea.type === 'PAID' 
-                          ? `/ideas/${idea.id}/purchase?title=${encodeURIComponent(idea.title)}&price=${idea.price || 0}` 
-                          : `/ideas/${idea.id}`
-                        }
-                        className={`px-6 py-3 rounded-2xl text-xs font-black text-white shadow-lg transition-all active:scale-95 ${
-                          idea.type === 'PAID' ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-100' : 'bg-emerald-800 hover:bg-emerald-900 shadow-emerald-100'
-                        }`}
+                        href={`/ideas/${idea.id}`}
+                        className="text-emerald-600 font-black text-sm underline"
                       >
-                        {idea.type === 'PAID' ? 'Buy 💰' : 'View →'}
+                        Details
                       </Link>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center bg-white rounded-[40px] border border-dashed border-gray-200">
+                <p className="text-gray-400 font-black uppercase tracking-widest">No ideas found</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-16 flex justify-center items-center gap-4">
+            <button 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 disabled:opacity-50 hover:bg-gray-50 transition-all"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="font-black text-gray-900">Page {page} of {totalPages}</span>
+            <button 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 disabled:opacity-50 hover:bg-gray-50 transition-all"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
