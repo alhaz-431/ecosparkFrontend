@@ -17,22 +17,19 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      // ১. ব্যাকএন্ডে লগইন রিকোয়েস্ট
+   
       const res = await api.post('/auth/login', { email, password, role });
       
       const userRole = res.data.user.role; 
 
-      // ২. লোকাল স্টোরেজে ডাটা সেভ
+     
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('role', userRole); 
       localStorage.setItem('user', JSON.stringify(res.data.user)); 
 
       toast.success('Login Successful! 🎉');
 
-      // ৩. লগইন সাকসেস হলে সরাসরি হোম পেজে পাঠানো (যেখানে সব আইডিয়া কার্ড আছে)
-      router.push('/');
       
-      // পেজটি একবার রিফ্রেশ করা যাতে নেভবার আপডেট হয়
       setTimeout(() => {
         window.location.reload();
       }, 500);

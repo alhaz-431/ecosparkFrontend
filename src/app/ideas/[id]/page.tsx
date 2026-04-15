@@ -14,8 +14,7 @@ export default function IdeaDetailsPage() {
   const [user, setUser] = useState<any>(null);
   const [voting, setVoting] = useState(false);
 
-  // ১. কনফ্লিক্ট চেক: যদি ID 'create' হয়, তবে এই পেজটি কিছুই করবে না
-  // এটি স্ট্যাটিক /ideas/create পেজকে লোড হতে সাহায্য করবে
+  
   if (id === 'create') return null;
 
   const fetchIdea = useCallback(async () => {
