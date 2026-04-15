@@ -13,7 +13,6 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // হাইড্রেশন এরর এড়াতে এবং ইউজার ডাটা পেতে useEffect
   useEffect(() => {
     setMounted(true);
     const storedUser = localStorage.getItem('user');
@@ -40,12 +39,10 @@ export default function Navbar() {
     router.refresh();
   };
 
-  // মাউন্ট হওয়ার আগে কিছু রেন্ডার করবে না (ডার্ক মোডের জন্য জরুরি)
   if (!mounted) return null;
 
   return (
     <>
-      {/* Marquee */}
       <div className="bg-green-900 text-green-200 text-sm py-1 overflow-hidden">
         <div className="animate-marquee whitespace-nowrap">
           🌱 Share your sustainability ideas &nbsp;&nbsp;&nbsp; 🌍 Join thousands of eco-warriors &nbsp;&nbsp;&nbsp; ♻️ Reduce, Reuse, Recycle &nbsp;&nbsp;&nbsp; 🌿 Go green today &nbsp;&nbsp;&nbsp;
@@ -58,13 +55,11 @@ export default function Navbar() {
             🌱 <span className="hidden sm:inline">EcoSpark Hub</span>
           </Link>
 
-          {/* Desktop Menu */}
           <div className="hidden md:flex gap-6 items-center">
             <Link href="/" className={`hover:text-green-200 transition ${pathname === '/' ? 'text-green-200 font-bold' : ''}`}>Home</Link>
             <Link href="/ideas" className={`hover:text-green-200 transition ${pathname === '/ideas' ? 'text-green-200 font-bold' : ''}`}>Ideas</Link>
-            <Link href="/about" className="hover:text-green-200 transition">About Us</Link>
+            <Link href="/about" className={`hover:text-green-200 transition ${pathname === '/about' ? 'text-green-200 font-bold' : ''}`}>About Us</Link>
 
-            {/* ডার্ক মোড সুইচ */}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="p-2 rounded-full bg-green-800 dark:bg-gray-800 hover:bg-green-600 dark:hover:bg-gray-700 transition-all border border-green-600 dark:border-gray-700"
@@ -91,30 +86,19 @@ export default function Navbar() {
                   </div>
                 </Link>
 
-                <button
-                  onClick={handleLogout}
-                  className="ml-2 text-red-200 hover:text-red-400 transition"
-                  title="Logout"
-                >
+                <button onClick={handleLogout} className="ml-2 text-red-200 hover:text-red-400 transition" title="Logout">
                   <LogOut size={20} />
                 </button>
               </div>
             ) : (
-              <Link
-                href="/login"
-                className="bg-white text-green-700 px-6 py-2 rounded-full font-bold hover:bg-green-100 transition shadow-md"
-              >
+              <Link href="/login" className="bg-white text-green-700 px-6 py-2 rounded-full font-bold hover:bg-green-100 transition shadow-md">
                 Login
               </Link>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-4">
-            <button 
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-1.5 bg-green-800 dark:bg-gray-800 rounded-lg"
-            >
+            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="p-1.5 bg-green-800 dark:bg-gray-800 rounded-lg">
               {theme === "dark" ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} />}
             </button>
             <button className="text-white text-2xl" onClick={() => setMenuOpen(!menuOpen)}>
@@ -123,20 +107,14 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Menu Content */}
         {menuOpen && (
-          <div className="md:hidden bg-green-800 dark:bg-gray-950 border-t border-green-600 dark:border-gray-800 px-6 py-6 flex flex-col gap-5 animate-in slide-in-from-top duration-300">
+          <div className="md:hidden bg-green-800 dark:bg-gray-950 border-t border-green-600 dark:border-gray-800 px-6 py-6 flex flex-col gap-5">
             <Link href="/" onClick={() => setMenuOpen(false)}>Home</Link>
             <Link href="/ideas" onClick={() => setMenuOpen(false)}>Ideas</Link>
+            <Link href="/about" onClick={() => setMenuOpen(false)}>About Us</Link>
             {user ? (
               <>
-                <Link
-                  href={user.role === 'ADMIN' ? '/dashboard/admin' : '/dashboard/member'}
-                  className="font-bold text-green-300"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
+                <Link href={user.role === 'ADMIN' ? '/dashboard/admin' : '/dashboard/member'} className="font-bold text-green-300" onClick={() => setMenuOpen(false)}>Dashboard</Link>
                 <Link href="/profile" className="font-bold text-green-300" onClick={() => setMenuOpen(false)}>My Profile</Link>
                 <button onClick={handleLogout} className="flex items-center gap-2 text-red-400 font-bold mt-2">
                   <LogOut size={18} /> Logout
