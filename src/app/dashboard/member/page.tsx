@@ -38,7 +38,7 @@ export default function MemberDashboard() {
       setLoading(false);
     };
     loadAllData();
-  }, []);
+  }, [router]);
 
   const fetchMyIdeas = async () => {
     try {
@@ -79,7 +79,7 @@ export default function MemberDashboard() {
       const data = await res.json();
       if (data.secure_url) setImageUrl(data.secure_url);
     } catch (err) {
-      alert("ছবি আপলোড করতে সমস্যা হয়েছে!");
+      alert("ছবি আপলোড করতে সমস্যা হয়েছে!");
     } finally { setUploading(false); }
   };
 
@@ -130,34 +130,33 @@ export default function MemberDashboard() {
         fetchMyIdeas();
       }
     } catch (error: any) {
-      const msg = error.response?.data?.message || "প্রক্রিয়াটি সম্পন্ন করা সম্ভব হয়নি।";
+      const msg = error.response?.data?.message || "প্রক্রিয়াটি সম্পন্ন করা সম্ভব হয়নি।";
       alert("Error: " + msg);
     }
   };
 
-  // --- সাবমিট ফাংশন ফিক্স ---
+  // --- এই ফাংশনটি আপনার ব্যাকএন্ড রাউটের সাথে মেলানোর জন্য ঠিক করা হয়েছে ---
   const handleSubmitForReview = async (id: string) => {
     try {
-      // ব্যাকএন্ডে স্ট্যাটাস আপডেট করার রিকোয়েস্ট
-      await api.patch(`/ideas/${id}`, { status: 'UNDER_REVIEW' });
-      alert("Review এর জন্য পাঠানো হয়েছে! 🚀");
+      // ব্যাকএন্ড রাউট router.patch('/:id/submit') এর সাথে মিল রেখে /submit যোগ করা হয়েছে
+      await api.patch(`/ideas/${id}/submit`, { status: 'UNDER_REVIEW' }); 
+      alert("Review এর জন্য পাঠানো হয়েছে! 🚀");
       fetchMyIdeas();
     } catch (error: any) { 
       console.error("Submit Error:", error);
-      alert("সাবমিট হয়নি: " + (error.response?.data?.message || "Error"));
+      alert("সাবমিট হয়নি: " + (error.response?.data?.message || "Error"));
     }
   };
 
-  // --- ডিলিট ফাংশন ফিক্স ---
   const handleDelete = async (id: string) => {
     if (!confirm('আপনি কি নিশ্চিত যে এটি ডিলিট করবেন?')) return;
     try {
       await api.delete(`/ideas/${id}`);
-      alert("সফলভাবে ডিলিট হয়েছে! 🗑️");
+      alert("সফলভাবে ডিলিট হয়েছে! 🗑️");
       fetchMyIdeas();
     } catch (error: any) { 
       console.error("Delete Error:", error);
-      alert("ডিলিট করা যায়নি: " + (error.response?.data?.message || "Error"));
+      alert("ডিলিট করা যায়নি: " + (error.response?.data?.message || "Error"));
     }
   };
 
@@ -187,7 +186,6 @@ export default function MemberDashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-10">
-        {/* Stats Section */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Total Ideas', count: ideas.length, icon: '💡' },
@@ -247,13 +245,12 @@ export default function MemberDashboard() {
                 <input type="number" placeholder="Price (৳)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full border dark:border-gray-700 dark:bg-gray-800 p-3 rounded-xl outline-none dark:text-white" required />
               )}
               <button type="submit" disabled={uploading} className="w-full py-3 rounded-xl font-bold bg-green-700 text-white hover:bg-green-800 transition shadow-lg">
-                {uploading ? 'ইমেজ আপলোড হচ্ছে...' : (editingId ? 'Update Idea' : 'Save as Draft')}
+                {uploading ? 'Uploading...' : (editingId ? 'Update Idea' : 'Save as Draft')}
               </button>
             </form>
           </div>
         )}
 
-        {/* My Ideas List */}
         <div className="space-y-4 mb-12">
           {ideas.length === 0 ? (
             <div className="text-center py-10 bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 text-gray-400">No ideas created yet.</div>
@@ -276,48 +273,13 @@ export default function MemberDashboard() {
                   {(idea.status === 'DRAFT' || idea.status === 'REJECTED') && (
                     <>
                       <button onClick={() => handleEdit(idea)} className="px-4 py-2 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs font-bold hover:bg-blue-200">Edit</button>
-                      <button onClick={() => handleSubmitForReview(idea.id)} className="px-4 py-2 bg-green-700 text-white rounded-full text-xs font-bold shadow-sm hover:bg-green-800">Submit</button>
+                      <button onClick={() => handleSubmitForReview(idea.id)} className="px-4 py-2 bg-green-700 text-white rounded-full text-xs font-bold shadow-sm hover:bg-green-800 transition">Submit</button>
                       <button onClick={() => handleDelete(idea.id)} className="px-4 py-2 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs font-bold hover:bg-red-200">Delete</button>
                     </>
                   )}
                 </div>
               </div>
             ))
-          )}
-        </div>
-
-        {/* Purchased Ideas Section */}
-        <div className="mt-16 bg-white dark:bg-gray-900 p-8 rounded-[32px] shadow-sm border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl text-2xl">🛍️</div>
-            <div>
-              <h2 className="text-2xl font-black text-gray-800 dark:text-gray-100 uppercase tracking-tight">Purchased Ideas</h2>
-              <p className="text-xs text-gray-400">Premium insights you've unlocked</p>
-            </div>
-          </div>
-
-          {purchasedIdeas.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {purchasedIdeas.map((item: any) => {
-                const targetId = item.idea?.id || item.ideaId;
-                return (
-                  <div 
-                    key={item.id} 
-                    onClick={() => targetId && router.push(`/ideas/${targetId}`)} 
-                    className="group relative bg-gray-50/50 dark:bg-gray-800/50 p-6 rounded-[24px] border border-gray-100 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-700 hover:bg-white dark:hover:bg-gray-800 hover:shadow-xl transition-all cursor-pointer"
-                  >
-                    <h3 className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition mb-2 text-lg">
-                      {item.idea?.title || "Premium Idea"}
-                    </h3>
-                    <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">View Content →</div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-gray-50/50 dark:bg-gray-800/20 rounded-[24px] border-2 border-dashed border-gray-200 dark:border-gray-800">
-              <p className="text-gray-400 italic">You haven't purchased any premium ideas yet.</p>
-            </div>
           )}
         </div>
       </div>
