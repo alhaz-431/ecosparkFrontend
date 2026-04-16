@@ -12,13 +12,16 @@ import {
   Users, 
   LogOut,
   TrendingUp,
-  Globe
+  Globe,
+  ShoppingCart,
+  DollarSign
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function AdminDashboard() {
   const [ideas, setIdeas] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ideas');
   const [user, setUser] = useState<any>(null);
@@ -42,12 +45,14 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [ideasRes, usersRes] = await Promise.all([
+      const [ideasRes, usersRes, purchasesRes] = await Promise.all([
         api.get('/admin/ideas'),
-        api.get('/admin/users')
+        api.get('/admin/users'),
+        api.get('/admin/purchases').catch(() => ({ data: [] }))
       ]);
       setIdeas(ideasRes.data || ideasRes.data.data || []);
       setUsers(usersRes.data || usersRes.data.data || []);
+      setPurchases(purchasesRes.data || purchasesRes.data.data || []);
     } catch (error) {
       console.error('Error fetching admin data:', error);
       toast.error('Failed to load dashboard data');
@@ -64,20 +69,10 @@ export default function AdminDashboard() {
         if (!feedbackNote) return;
       }
       await api.patch(`/admin/ideas/${id}/status`, { status, feedbackNote });
-      toast.success(`Idea ${status.toLowerCase()} successfully!`);
+      toast.success(`Idea ${status.toLowerCase()} successful!`);
       fetchData();
     } catch (error) {
       toast.error('Failed to update status');
-    }
-  };
-
-  const handleToggleUser = async (id: string) => {
-    try {
-      await api.patch(`/admin/users/${id}/toggle`);
-      toast.success('User status updated!');
-      fetchData();
-    } catch (error) {
-      toast.error('Failed to update user');
     }
   };
 
@@ -96,72 +91,106 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Toaster position="top-center" />
+
+      {/* Admin Sidebar */}
       <aside className="w-72 bg-emerald-900 text-white hidden lg:flex flex-col p-8 sticky top-0 h-screen">
         <div className="mb-12">
           <h2 className="text-2xl font-black tracking-tighter">EcoSpark Admin</h2>
-          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mt-1">Management Portal</p>
+          <p className="text-[10px] font-black uppercase mt-1 text-emerald-400">Management Panel</p>
         </div>
+
         <nav className="flex-1 space-y-2">
-          <button onClick={() => setActiveTab('ideas')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-black text-sm transition-all ${activeTab === 'ideas' ? 'bg-emerald-800 text-white shadow-lg' : 'text-emerald-100/60 hover:bg-emerald-800/50'}`}><Lightbulb size={20} /> Ideas Management</button>
-          <button onClick={() => setActiveTab('users')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-black text-sm transition-all ${activeTab === 'users' ? 'bg-emerald-800 text-white shadow-lg' : 'text-emerald-100/60 hover:bg-emerald-800/50'}`}><Users size={20} /> User Directory</button>
-          <Link href="/" className="w-full flex items-center gap-3 p-4 text-emerald-100/60 hover:bg-emerald-800/50 rounded-2xl font-black text-sm transition-all"><Globe size={20} /> View Website</Link>
+          <button onClick={() => setActiveTab('ideas')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-black text-sm transition-all ${activeTab === 'ideas' ? 'bg-emerald-800 text-white' : 'text-emerald-100/60 hover:bg-emerald-800/50'}`}>
+            <Lightbulb size={20} /> Ideas Review
+          </button>
+          <button onClick={() => setActiveTab('users')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-black text-sm transition-all ${activeTab === 'users' ? 'bg-emerald-800 text-white' : 'text-emerald-100/60 hover:bg-emerald-800/50'}`}>
+            <Users size={20} /> Community Members
+          </button>
+          <button onClick={() => setActiveTab('sales')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-black text-sm transition-all ${activeTab === 'sales' ? 'bg-emerald-800 text-white shadow-lg' : 'text-emerald-100/60 hover:bg-emerald-800/50'}`}>
+            <ShoppingCart size={20} /> Sales History
+          </button>
         </nav>
-        <button onClick={handleLogout} className="flex items-center gap-3 p-4 text-rose-300 hover:bg-rose-900/30 rounded-2xl font-black text-sm transition-all mt-auto"><LogOut size={20} /> Logout</button>
+
+        <button onClick={handleLogout} className="flex items-center gap-3 p-4 text-rose-300 hover:bg-rose-900/30 rounded-2xl font-black mt-auto">
+          <LogOut size={20} /> Logout
+        </button>
       </aside>
 
       <main className="flex-1 p-6 lg:p-12 overflow-y-auto">
-        <div className="relative overflow-hidden rounded-[48px] bg-white p-10 mb-12 border border-gray-100 shadow-sm">
-          <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-2">Admin Control Center</h1>
-          <p className="text-gray-500 font-medium">Review submissions and manage community members</p>
-        </div>
-
-        {activeTab === 'ideas' ? (
-          <div className="bg-white rounded-[48px] shadow-sm border border-gray-100 overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50/50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
-                <tr>
-                  <th className="px-8 py-6 text-left">Idea Details</th>
-                  <th className="px-8 py-6 text-left">Author</th>
-                  <th className="px-8 py-6 text-center">Status</th>
-                  <th className="px-8 py-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {ideas.map((idea) => (
-                  <tr key={idea.id} className="hover:bg-gray-50/50 transition-all">
-                    <td className="px-8 py-6"><p className="font-black text-gray-900 mb-1">{idea.title}</p></td>
-                    <td className="px-8 py-6"><p className="text-sm font-bold text-gray-700">{idea.author?.name || 'Unknown'}</p></td>
-                    <td className="px-8 py-6 text-center">
-                      <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${idea.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600' : idea.status === 'REJECTED' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
-                        {idea.status}
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <div className="flex justify-end gap-3">
-                        {idea.status !== 'APPROVED' && <button onClick={() => handleStatusUpdate(idea.id, 'APPROVED')} className="px-5 py-2.5 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl">Approve</button>}
-                        {idea.status !== 'REJECTED' && <button onClick={() => handleStatusUpdate(idea.id, 'REJECTED')} className="px-5 py-2.5 bg-white border border-rose-100 text-rose-600 text-[10px] font-black uppercase tracking-widest rounded-xl">Reject</button>}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="bg-white rounded-[48px] shadow-sm border border-gray-100 p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {users.map((u) => (
-              <div key={u.id} className="bg-gray-50 rounded-3xl p-6 flex justify-between items-center border border-gray-100">
-                <div>
-                  <h3 className="font-black text-gray-900">{u.name}</h3>
-                  <p className="text-gray-400 text-xs font-medium">{u.email}</p>
-                </div>
-                {u.id !== user?.id && (
-                  <button onClick={() => handleToggleUser(u.id)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${u.isActive ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-700'}`}>
-                    {u.isActive ? 'Ban User' : 'Unban User'}
-                  </button>
-                )}
+        <header className="mb-12">
+           <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-2">Admin Control Center</h1>
+           <div className="flex gap-4 mt-6">
+              <div className="bg-emerald-50 px-8 py-4 rounded-3xl border border-emerald-100">
+                <p className="text-[10px] font-black uppercase text-emerald-600">Total Ideas</p>
+                <p className="text-3xl font-black">{ideas.length}</p>
               </div>
-            ))}
+              <div className="bg-blue-50 px-8 py-4 rounded-3xl border border-blue-100">
+                <p className="text-[10px] uppercase font-black text-blue-600">Total Sales</p>
+                <p className="text-3xl font-black">{purchases.length}</p>
+              </div>
+           </div>
+        </header>
+
+        {activeTab === 'ideas' && (
+          <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
+             <table className="w-full">
+                <thead className="bg-gray-50 uppercase text-[10px] font-black">
+                   <tr>
+                      <th className="px-8 py-6 text-left">Idea Details</th>
+                      <th className="px-8 py-6 text-center">Status</th>
+                      <th className="px-8 py-6 text-right">Actions</th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                   {ideas.map((idea) => (
+                      <tr key={idea.id}>
+                         <td className="px-8 py-6 uppercase">
+                            <p className="font-black">{idea.title}</p>
+                            {idea.isPaid && <span className="text-amber-600 text-[8px] font-black bg-amber-50 px-2 rounded">Paid IDEA (${idea.price})</span>}
+                         </td>
+                         <td className="px-8 py-6 text-center font-black text-[10px]">
+                            {idea.status}
+                         </td>
+                         <td className="px-8 py-6 text-right flex gap-2 justify-end">
+                            {idea.status !== 'APPROVED' && <button onClick={() => handleStatusUpdate(idea.id, 'APPROVED')} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Approve</button>}
+                            {idea.status !== 'REJECTED' && <button onClick={() => handleStatusUpdate(idea.id, 'REJECTED')} className="bg-white border text-rose-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Reject</button>}
+                         </td>
+                      </tr>
+                   ))}
+                </tbody>
+             </table>
+          </div>
+        )}
+
+        {activeTab === 'sales' && (
+          <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
+             <table className="w-full">
+                <thead className="bg-gray-50 uppercase text-[10px] font-black">
+                   <tr>
+                      <th className="px-8 py-6 text-left">Purchased Idea</th>
+                      <th className="px-8 py-6 text-left">Customer</th>
+                      <th className="px-8 py-6 text-center">Amount</th>
+                      <th className="px-8 py-6 text-right">Date</th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                   {purchases.map((sale: any) => (
+                      <tr key={sale.id}>
+                         <td className="px-8 py-6 font-black">{sale.idea?.title}</td>
+                         <td className="px-8 py-6">
+                            <p className="font-bold">{sale.user?.name}</p>
+                            <p className="text-xs text-gray-400">{sale.user?.email}</p>
+                         </td>
+                         <td className="px-8 py-6 text-center font-black text-emerald-600">
+                            ${(sale.amount / 100).toFixed(2)}
+                         </td>
+                         <td className="px-8 py-6 text-right text-xs text-gray-500">
+                            {new Date(sale.createdAt).toLocaleDateString()}
+                         </td>
+                      </tr>
+                   ))}
+                </tbody>
+             </table>
           </div>
         )}
       </main>
