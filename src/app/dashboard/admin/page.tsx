@@ -11,10 +11,10 @@ import {
   Lightbulb, 
   Users, 
   LogOut,
-  TrendingUp,
-  Globe,
   ShoppingCart,
-  DollarSign
+  Eye,
+  UserCheck,
+  UserMinus
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -61,6 +61,7 @@ export default function AdminDashboard() {
     }
   };
 
+  // --- আইডিয়া স্ট্যাটাস আপডেট (Approve/Reject সবসময় খোলা থাকবে) ---
   const handleStatusUpdate = async (id: string, status: string) => {
     try {
       let feedbackNote = '';
@@ -69,10 +70,24 @@ export default function AdminDashboard() {
         if (!feedbackNote) return;
       }
       await api.patch(`/admin/ideas/${id}/status`, { status, feedbackNote });
-      toast.success(`Idea ${status.toLowerCase()} successful!`);
+      toast.success(`Idea marked as ${status}!`);
       fetchData();
     } catch (error) {
       toast.error('Failed to update status');
+    }
+  };
+
+  // --- মেম্বার অ্যাক্টিভ/ডিঅ্যাক্টিভ করার ফাংশন ---
+  const handleUserStatus = async (userId: string, isDeactivated: boolean) => {
+    try {
+      const action = isDeactivated ? 'activate' : 'deactivate';
+      if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+      
+      await api.patch(`/admin/users/${userId}/toggle-status`);
+      toast.success(`User ${action}d successfully!`);
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to update user status');
     }
   };
 
@@ -125,12 +140,13 @@ export default function AdminDashboard() {
                 <p className="text-3xl font-black">{ideas.length}</p>
               </div>
               <div className="bg-blue-50 px-8 py-4 rounded-3xl border border-blue-100">
-                <p className="text-[10px] uppercase font-black text-blue-600">Total Sales</p>
-                <p className="text-3xl font-black">{purchases.length}</p>
+                <p className="text-[10px] uppercase font-black text-blue-600">Total Members</p>
+                <p className="text-3xl font-black">{users.length}</p>
               </div>
            </div>
         </header>
 
+        {/* Ideas Tab */}
         {activeTab === 'ideas' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
@@ -143,17 +159,29 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                    {ideas.map((idea) => (
-                      <tr key={idea.id}>
-                         <td className="px-8 py-6 uppercase">
-                            <p className="font-black">{idea.title}</p>
-                            {idea.isPaid && <span className="text-amber-600 text-[8px] font-black bg-amber-50 px-2 rounded">Paid IDEA (${idea.price})</span>}
+                      <tr key={idea.id} className="hover:bg-gray-50/50 transition-colors">
+                         <td className="px-8 py-6">
+                            <p className="font-black uppercase text-sm">{idea.title}</p>
+                            <div className="flex gap-2 mt-1">
+                              {idea.type === 'PAID' && <span className="text-amber-600 text-[8px] font-black bg-amber-50 px-2 py-0.5 rounded border border-amber-100">PAID (${idea.price})</span>}
+                              <span className="text-gray-400 text-[8px] font-black bg-gray-50 px-2 py-0.5 rounded border">BY: {idea.author?.name || 'Unknown'}</span>
+                            </div>
                          </td>
-                         <td className="px-8 py-6 text-center font-black text-[10px]">
-                            {idea.status}
+                         <td className="px-8 py-6 text-center">
+                            <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${idea.status === 'APPROVED' ? 'bg-green-100 text-green-700' : idea.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                              {idea.status}
+                            </span>
                          </td>
-                         <td className="px-8 py-6 text-right flex gap-2 justify-end">
-                            {idea.status !== 'APPROVED' && <button onClick={() => handleStatusUpdate(idea.id, 'APPROVED')} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Approve</button>}
-                            {idea.status !== 'REJECTED' && <button onClick={() => handleStatusUpdate(idea.id, 'REJECTED')} className="bg-white border text-rose-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Reject</button>}
+                         <td className="px-8 py-6 text-right">
+                            <div className="flex gap-2 justify-end">
+                              {/* Details বাটন যাতে অ্যাডমিন আগে দেখতে পারে */}
+                              <Link href={`/ideas/${idea.id}`} className="bg-gray-100 text-gray-700 p-2 rounded-xl hover:bg-gray-200 transition">
+                                <Eye size={16} />
+                              </Link>
+                              {/* Approve এবং Reject বাটন সবসময় থাকবে */}
+                              <button onClick={() => handleStatusUpdate(idea.id, 'APPROVED')} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 transition">Approve</button>
+                              <button onClick={() => handleStatusUpdate(idea.id, 'REJECTED')} className="bg-white border border-rose-200 text-rose-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-rose-50 transition">Reject</button>
+                            </div>
                          </td>
                       </tr>
                    ))}
@@ -162,6 +190,45 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Users Tab (Active/Deactivate Option) */}
+        {activeTab === 'users' && (
+          <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
+             <table className="w-full">
+                <thead className="bg-gray-50 uppercase text-[10px] font-black">
+                   <tr>
+                      <th className="px-8 py-6 text-left">Member Info</th>
+                      <th className="px-8 py-6 text-center">Role</th>
+                      <th className="px-8 py-6 text-right">Account Control</th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                   {users.map((u) => (
+                      <tr key={u.id}>
+                         <td className="px-8 py-6">
+                            <p className="font-black text-gray-900">{u.name}</p>
+                            <p className="text-xs text-gray-400">{u.email}</p>
+                         </td>
+                         <td className="px-8 py-6 text-center font-black text-[10px] uppercase text-gray-500">
+                            {u.role}
+                         </td>
+                         <td className="px-8 py-6 text-right">
+                            {u.role !== 'ADMIN' && (
+                              <button 
+                                onClick={() => handleUserStatus(u.id, u.isDeactivated)}
+                                className={`flex items-center gap-2 ml-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase transition ${u.isDeactivated ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-rose-50 text-rose-600 border border-rose-200'}`}
+                              >
+                                {u.isDeactivated ? <><UserCheck size={14}/> Activate</> : <><UserMinus size={14}/> Deactivate</>}
+                              </button>
+                            )}
+                         </td>
+                      </tr>
+                   ))}
+                </tbody>
+             </table>
+          </div>
+        )}
+
+        {/* Sales Tab */}
         {activeTab === 'sales' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
@@ -176,15 +243,15 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-gray-50">
                    {purchases.map((sale: any) => (
                       <tr key={sale.id}>
-                         <td className="px-8 py-6 font-black">{sale.idea?.title}</td>
+                         <td className="px-8 py-6 font-black uppercase text-xs">{sale.idea?.title}</td>
                          <td className="px-8 py-6">
-                            <p className="font-bold">{sale.user?.name}</p>
-                            <p className="text-xs text-gray-400">{sale.user?.email}</p>
+                            <p className="font-bold text-sm">{sale.user?.name}</p>
+                            <p className="text-[10px] text-gray-400">{sale.user?.email}</p>
                          </td>
                          <td className="px-8 py-6 text-center font-black text-emerald-600">
                             ${(sale.amount / 100).toFixed(2)}
                          </td>
-                         <td className="px-8 py-6 text-right text-xs text-gray-500">
+                         <td className="px-8 py-6 text-right text-[10px] text-gray-500 font-bold">
                             {new Date(sale.createdAt).toLocaleDateString()}
                          </td>
                       </tr>
