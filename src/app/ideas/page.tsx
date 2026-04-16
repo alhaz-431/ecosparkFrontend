@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/axios';
 import toast, { Toaster } from 'react-hot-toast';
@@ -9,13 +10,13 @@ import {
   ChevronLeft, 
   ChevronRight, 
   ThumbsUp, 
-  Lock,
   ShoppingCart,
   Plus
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function IdeasPage() {
+  const router = useRouter();
   const [ideas, setIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -31,13 +32,12 @@ export default function IdeasPage() {
     setLoading(true);
     try {
       const res = await api.get(`/ideas?search=${search}&category=${category}&sort=${sort}&page=${page}&limit=10`);
-      // আপনার দেওয়া লজিক অনুযায়ী ডাটা ফেচিং
       const fetchedData = res.data?.data || res.data?.ideas || res.data || [];
       setIdeas(Array.isArray(fetchedData) ? fetchedData : []);
       setTotalPages(res.data.totalPages || 1);
     } catch (error: any) {
       console.error("Fetch error:", error);
-      toast.error('আইডিয়া লোড করতে সমস্যা হচ্ছে!');
+      toast.error('আইডিয়া লোড করতে সমস্যা হচ্ছে!');
     } finally {
       setLoading(false);
     }
@@ -46,6 +46,18 @@ export default function IdeasPage() {
   useEffect(() => {
     fetchIdeas();
   }, [fetchIdeas]);
+
+  // পেমেন্ট পেজে পাঠানোর ফাংশন (এটি এখন সঠিক রাউটিং করবে)
+  const handlePurchaseNavigation = (id: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('কেনার আগে লগইন করুন!');
+      router.push('/login');
+      return;
+    }
+    // আপনার নতুন পেমেন্ট পেজ স্ট্রাকচার অনুযায়ী রিডাইরেক্ট
+    router.push(`/purchase/${id}`); 
+  };
 
   const handleVote = async (id: string, type: 'up' | 'down') => {
     const token = localStorage.getItem('token');
@@ -73,10 +85,10 @@ export default function IdeasPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-12 text-center">
           <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">Community Ideas</h1>
-          <p className="text-gray-500 font-medium mb-8">Explore and support sustainable projects from our community.</p>
+          <p className="text-gray-500 font-medium mb-8 text-lg">Explore and support sustainable projects from our community.</p>
           <Link 
             href="/ideas/create"
-            className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100"
+            className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-95"
           >
             <Plus size={20} /> Share New Idea
           </Link>
@@ -99,7 +111,7 @@ export default function IdeasPage() {
             <select 
               value={category}
               onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-              className="bg-gray-50 px-4 py-3 rounded-2xl outline-none font-bold text-gray-700 cursor-pointer"
+              className="bg-gray-50 px-4 py-3 rounded-2xl outline-none font-bold text-gray-700 cursor-pointer border-none"
             >
               <option value="">All Categories</option>
               {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -108,7 +120,7 @@ export default function IdeasPage() {
             <select 
               value={sort}
               onChange={(e) => { setSort(e.target.value); setPage(1); }}
-              className="bg-gray-50 px-4 py-3 rounded-2xl outline-none font-bold text-gray-700 cursor-pointer"
+              className="bg-gray-50 px-4 py-3 rounded-2xl outline-none font-bold text-gray-700 cursor-pointer border-none"
             >
               <option value="recent">Recent First</option>
               <option value="top_voted">Top Voted</option>
@@ -118,74 +130,67 @@ export default function IdeasPage() {
 
         {/* Ideas Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-pulse">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-64 bg-white rounded-3xl"></div>)}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-pulse">
+            {[1, 2, 3].map(i => <div key={i} className="h-[450px] bg-white rounded-[32px] border border-gray-100"></div>)}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {ideas.length > 0 ? (
               ideas.map((idea) => (
                 <motion.div 
                   key={idea.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden group hover:shadow-xl transition-all flex flex-col"
+                  className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all flex flex-col"
                 >
                   {/* Image Section */}
-                  <div className="h-52 bg-gray-100 relative overflow-hidden">
+                  <div className="h-56 bg-gray-100 relative overflow-hidden">
                     <img 
                       src={idea.images?.[0] || `https://picsum.photos/seed/${idea.id}/800/600`} 
                       className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
                       referrerPolicy="no-referrer"
-                      alt={idea.title || 'Idea Image'}
+                      alt={idea.title}
                     />
                     <div className="absolute top-4 left-4">
-                      <span className="bg-white/90 backdrop-blur-md text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
-                        {idea.category?.name || idea.category || 'General'}
+                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${idea.isPaid ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
+                        {idea.isPaid ? 'Premium' : 'Free Idea'}
                       </span>
                     </div>
-                    {idea.isPaid && (
-                      <div className="absolute top-4 right-4">
-                        <span className="bg-amber-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1">
-                          <Lock size={10} /> Paid
-                        </span>
-                      </div>
-                    )}
                   </div>
                   
                   {/* Content Section */}
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="text-xl font-black text-gray-900 mb-2 line-clamp-1">{idea.title}</h3>
-                    <p className="text-gray-500 text-sm line-clamp-2 mb-6 font-medium flex-1">{idea.description}</p>
+                  <div className="p-8 flex-1 flex flex-col">
+                    <h3 className="text-2xl font-black text-gray-900 mb-3 line-clamp-1 tracking-tight">{idea.title}</h3>
+                    <p className="text-gray-500 text-sm line-clamp-2 mb-8 font-medium flex-1 leading-relaxed">{idea.description}</p>
                     
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-50 mt-auto">
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between pt-6 border-t border-gray-50 mt-auto">
+                      <div className="flex items-center gap-4">
                         <button 
                           onClick={() => handleVote(idea.id, 'up')}
                           disabled={votingId === idea.id}
-                          className="flex items-center gap-1.5 text-gray-500 hover:text-emerald-600 transition-colors font-bold text-xs"
+                          className="flex items-center gap-2 text-gray-400 hover:text-emerald-600 transition-colors font-black text-xs uppercase tracking-widest"
                         >
-                          <ThumbsUp size={16} /> {idea.upvotes || 0}
+                          <ThumbsUp size={18} className={idea.upvotes > 0 ? 'fill-emerald-600 text-emerald-600' : ''} /> {idea.upvotes || 0}
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         {idea.isPaid ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">${idea.price || '10.00'}</span>
-                            <Link 
-                              href={`/purchase/${idea.id}`}
-                              className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 shadow-lg shadow-emerald-100 flex items-center gap-2"
-                            >
-                              <ShoppingCart size={14} /> Buy Now
-                            </Link>
-                          </div>
+                          <button 
+                            onClick={() => handlePurchaseNavigation(idea.id)}
+                            className="bg-emerald-600 text-white pl-5 pr-2 py-2 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-700 flex items-center gap-3 transition-all active:scale-95 group/btn"
+                          >
+                            ৳{idea.price || '500'} 
+                            <span className="bg-emerald-500 p-2 rounded-xl group-hover/btn:bg-emerald-400 transition-colors">
+                              <ShoppingCart size={16} />
+                            </span>
+                          </button>
                         ) : (
                           <Link 
                             href={`/ideas/${idea.id}`}
-                            className="bg-gray-900 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700"
+                            className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-600 transition-all active:scale-95"
                           >
-                            Details
+                            View Details
                           </Link>
                         )}
                       </div>
@@ -194,11 +199,11 @@ export default function IdeasPage() {
                 </motion.div>
               ))
             ) : (
-              <div className="col-span-full py-20 text-center bg-white rounded-[48px] border border-gray-100">
-                <p className="text-gray-400 font-black uppercase tracking-widest text-sm">No ideas found matching your criteria.</p>
+              <div className="col-span-full py-24 text-center bg-white rounded-[48px] border border-gray-100 shadow-inner">
+                <p className="text-gray-400 font-black uppercase tracking-widest text-sm">No ideas found matching your search.</p>
                 <button 
                   onClick={() => { setSearch(''); setCategory(''); setPage(1); }}
-                  className="mt-4 text-emerald-600 font-black text-xs underline"
+                  className="mt-4 text-emerald-600 font-black text-xs underline uppercase tracking-tighter"
                 >
                   Clear all filters
                 </button>
@@ -209,21 +214,21 @@ export default function IdeasPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="mt-16 flex justify-center items-center gap-4">
+          <div className="mt-16 flex justify-center items-center gap-6">
             <button 
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 disabled:opacity-50"
+              className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 disabled:opacity-30 hover:border-emerald-500 transition-colors"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={24} />
             </button>
-            <span className="font-black text-gray-900">Page {page} of {totalPages}</span>
+            <span className="font-black text-gray-900 text-lg tracking-tighter">Page {page} / {totalPages}</span>
             <button 
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 disabled:opacity-50"
+              className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 disabled:opacity-30 hover:border-emerald-500 transition-colors"
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={24} />
             </button>
           </div>
         )}
