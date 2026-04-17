@@ -47,7 +47,6 @@ export default function IdeasPage() {
     fetchIdeas();
   }, [fetchIdeas]);
 
-  // পেমেন্ট পেজে পাঠানোর ফাংশন (এটি এখন সঠিক রাউটিং করবে)
   const handlePurchaseNavigation = (id: string) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -55,11 +54,11 @@ export default function IdeasPage() {
       router.push('/login');
       return;
     }
-    // আপনার নতুন পেমেন্ট পেজ স্ট্রাকচার অনুযায়ী রিডাইরেক্ট
     router.push(`/purchase/${id}`); 
   };
 
-  const handleVote = async (id: string, type: 'up' | 'down') => {
+  // --- ভোট ফাংশন (পুরোপুরি ঠিক করা হয়েছে) ---
+  const handleVote = async (id: string, direction: 'up' | 'down') => {
     const token = localStorage.getItem('token');
     if (!token) {
       toast.error('Please login to vote');
@@ -68,9 +67,16 @@ export default function IdeasPage() {
 
     setVotingId(id);
     try {
-      await api.post(`/ideas/${id}/vote`, { type });
-      toast.success('Vote recorded!');
-      fetchIdeas(); 
+      // আপনার ব্যাকএন্ড কন্ট্রোলার অনুযায়ী value: 1 বা -1 পাঠাতে হবে
+      const voteValue = direction === 'up' ? 1 : -1;
+      
+      // পাথ: /api/votes/:id/vote
+      const res = await api.post(`/votes/${id}/vote`, { value: voteValue });
+      
+      if (res.status === 200 || res.status === 201) {
+        toast.success(res.data.message === 'Vote removed' ? 'Vote removed' : 'Vote recorded!');
+        fetchIdeas(); // সংখ্যা আপডেট করার জন্য পুনরায় কল
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Voting failed');
     } finally {
@@ -94,7 +100,7 @@ export default function IdeasPage() {
           </Link>
         </div>
 
-        {/* Filters & Search */}
+        {/* Filters & Search Section */}
         <div className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100 mb-10 flex flex-col lg:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -135,84 +141,84 @@ export default function IdeasPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {ideas.length > 0 ? (
-              ideas.map((idea) => (
-                <motion.div 
-                  key={idea.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all flex flex-col"
-                >
-                  {/* Image Section */}
-                  <div className="h-56 bg-gray-100 relative overflow-hidden">
-                    <img 
-                      src={idea.images?.[0] || `https://picsum.photos/seed/${idea.id}/800/600`} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
-                      referrerPolicy="no-referrer"
-                      alt={idea.title}
-                    />
-                    <div className="absolute top-4 left-4">
-                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${idea.isPaid ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
-                        {idea.isPaid ? 'Premium' : 'Free Idea'}
-                      </span>
-                    </div>
+            {ideas.map((idea) => (
+              <motion.div 
+                key={idea.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all flex flex-col"
+              >
+                {/* Image Section */}
+                <div className="h-56 bg-gray-100 relative overflow-hidden">
+                  <img 
+                    src={idea.images?.[0] || `https://picsum.photos/seed/${idea.id}/800/600`} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
+                    alt={idea.title}
+                  />
+                  <div className="absolute top-4 left-4">
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${idea.type === 'PAID' ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
+                      {idea.type === 'PAID' ? 'Premium' : 'Free Idea'}
+                    </span>
                   </div>
+                </div>
+                
+                {/* Content Section */}
+                <div className="p-8 flex-1 flex flex-col">
+                  <h3 className="text-2xl font-black text-gray-900 mb-3 line-clamp-1 tracking-tight">{idea.title}</h3>
+                  <p className="text-gray-500 text-sm line-clamp-2 mb-8 font-medium flex-1 leading-relaxed">{idea.description}</p>
                   
-                  {/* Content Section */}
-                  <div className="p-8 flex-1 flex flex-col">
-                    <h3 className="text-2xl font-black text-gray-900 mb-3 line-clamp-1 tracking-tight">{idea.title}</h3>
-                    <p className="text-gray-500 text-sm line-clamp-2 mb-8 font-medium flex-1 leading-relaxed">{idea.description}</p>
-                    
-                    <div className="flex items-center justify-between pt-6 border-t border-gray-50 mt-auto">
-                      <div className="flex items-center gap-4">
-                        <button 
-                          onClick={() => handleVote(idea.id, 'up')}
-                          disabled={votingId === idea.id}
-                          className="flex items-center gap-2 text-gray-400 hover:text-emerald-600 transition-colors font-black text-xs uppercase tracking-widest"
-                        >
-                          <ThumbsUp size={18} className={idea.upvotes > 0 ? 'fill-emerald-600 text-emerald-600' : ''} /> {idea.upvotes || 0}
-                        </button>
-                      </div>
+                  {/* Vote & Action Section (সংশোধিত) */}
+                  <div className="flex items-center justify-between pt-6 border-t border-gray-50 mt-auto">
+                    <div className="flex items-center gap-4">
+                      {/* Upvote Button */}
+                      <button 
+                        onClick={() => handleVote(idea.id, 'up')}
+                        disabled={votingId === idea.id}
+                        className={`flex items-center gap-1 transition-colors font-black text-xs uppercase tracking-widest ${idea.userVote === 1 ? 'text-emerald-600' : 'text-gray-400 hover:text-emerald-500'}`}
+                      >
+                        <ThumbsUp size={18} className={idea.userVote === 1 ? 'fill-emerald-600' : ''} /> 
+                        {idea.upvotes || 0}
+                      </button>
 
-                      <div className="flex items-center gap-3">
-                        {idea.isPaid ? (
-                          <button 
-                            onClick={() => handlePurchaseNavigation(idea.id)}
-                            className="bg-emerald-600 text-white pl-5 pr-2 py-2 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-700 flex items-center gap-3 transition-all active:scale-95 group/btn"
-                          >
-                            ৳{idea.price || '500'} 
-                            <span className="bg-emerald-500 p-2 rounded-xl group-hover/btn:bg-emerald-400 transition-colors">
-                              <ShoppingCart size={16} />
-                            </span>
-                          </button>
-                        ) : (
-                          <Link 
-                            href={`/ideas/${idea.id}`}
-                            className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-600 transition-all active:scale-95"
-                          >
-                            View Details
-                          </Link>
-                        )}
-                      </div>
+                      {/* Downvote Button (উল্টানো থাম্বস-আপ) */}
+                      <button 
+                        onClick={() => handleVote(idea.id, 'down')}
+                        disabled={votingId === idea.id}
+                        className={`flex items-center gap-1 transition-colors font-black text-xs uppercase tracking-widest ${idea.userVote === -1 ? 'text-red-600' : 'text-gray-400 hover:text-red-500'}`}
+                      >
+                        <ThumbsUp size={18} className={`rotate-180 ${idea.userVote === -1 ? 'fill-red-600' : ''}`} /> 
+                        {idea.downvotes || 0}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {idea.type === 'PAID' ? (
+                        <button 
+                          onClick={() => handlePurchaseNavigation(idea.id)}
+                          className="bg-emerald-600 text-white pl-5 pr-2 py-2 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-700 flex items-center gap-3 transition-all active:scale-95 group/btn"
+                        >
+                          ৳{idea.price || '0'} 
+                          <span className="bg-emerald-500 p-2 rounded-xl group-hover/btn:bg-emerald-400 transition-colors">
+                            <ShoppingCart size={16} />
+                          </span>
+                        </button>
+                      ) : (
+                        <Link 
+                          href={`/ideas/${idea.id}`}
+                          className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-600 transition-all active:scale-95"
+                        >
+                          View Details
+                        </Link>
+                      )}
                     </div>
                   </div>
-                </motion.div>
-              ))
-            ) : (
-              <div className="col-span-full py-24 text-center bg-white rounded-[48px] border border-gray-100 shadow-inner">
-                <p className="text-gray-400 font-black uppercase tracking-widest text-sm">No ideas found matching your search.</p>
-                <button 
-                  onClick={() => { setSearch(''); setCategory(''); setPage(1); }}
-                  className="mt-4 text-emerald-600 font-black text-xs underline uppercase tracking-tighter"
-                >
-                  Clear all filters
-                </button>
-              </div>
-            )}
+                </div>
+              </motion.div>
+            ))}
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Pagination Section */}
         {totalPages > 1 && (
           <div className="mt-16 flex justify-center items-center gap-6">
             <button 
