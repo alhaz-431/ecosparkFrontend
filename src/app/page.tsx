@@ -6,34 +6,16 @@ import Image from 'next/image';
 import api from '@/lib/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Search, 
-  ArrowRight, 
-  Star, 
-  Mail, 
-  Globe, 
-  Share2, 
-  TrendingUp,
-  LayoutGrid,
-  ChevronRight,
-  ShieldCheck,
-  Zap,
-  Leaf,
-  Users,
-  MessageSquare,
-  HelpCircle,
-  Plus
+  Search, ArrowRight, Star, Mail, Globe, LayoutGrid, ChevronRight, 
+  ShieldCheck, Zap, Leaf, Plus, Sparkles, BarChart3, Target, 
+  ShieldAlert, Rocket, Heart, Award
 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
 export default function HomePage() {
   const [ideas, setIdeas] = useState<any[]>([]);
   const [topIdeas, setTopIdeas] = useState<any[]>([]);
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
   const [loading, setLoading] = useState(true);
-  const [hasSearched, setHasSearched] = useState(false);
-
-  const categories = ["Energy", "Waste", "Transportation", "Water", "Farming"];
 
   useEffect(() => {
     fetchInitialData();
@@ -54,452 +36,215 @@ export default function HomePage() {
     }
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await api.get(`/ideas?search=${search}&category=${category}`);
-      setIdeas(res.data.ideas || res.data.data || []);
-      setHasSearched(true);
-
-      setTimeout(() => {
-        const element = document.getElementById('discover-section');
-        if (element) element.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fadeInUp = {
-    initial: { opacity: 0, y: 30 },
-    whileInView: { opacity: 1, y: 0 },
-    viewport: { once: true },
-    transition: { duration: 0.6, ease: "easeOut" as const }
-  };
-
   return (
-    <div className="bg-white dark:bg-gray-950 min-h-screen selection:bg-emerald-200 selection:text-emerald-900 overflow-x-hidden">
+    <div className="bg-white dark:bg-[#050505] min-h-screen selection:bg-emerald-200">
       <Toaster position="top-center" />
 
-      {/* Modern Hero Section - Split Layout */}
-      <section className="relative min-h-[90vh] flex items-center pt-20 overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-emerald-50 dark:bg-emerald-950/20 -z-10 rounded-l-[100px] hidden lg:block" />
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-100/30 blur-[120px] rounded-full -z-10" />
-        
-        <div className="max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-16 items-center">
-          <motion.div 
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "circOut" as const }}
-          >
-            <div className="inline-flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest mb-8 border border-emerald-200/50 dark:border-emerald-800/50">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              Next Gen Sustainability
+      {/* --- 1. ENHANCED HERO SECTION --- */}
+      <section className="relative pt-32 pb-20 overflow-hidden">
+        <div className="absolute top-0 right-0 w-[50%] h-[70%] bg-emerald-500/5 blur-[120px] rounded-full -z-10" />
+        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}>
+            <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest mb-6 border border-emerald-100 dark:border-emerald-500/20">
+              <Sparkles size={14} /> Eco-Innovation Hub 2026
             </div>
-            
-            <h1 className="text-6xl md:text-8xl font-black text-gray-900 dark:text-white leading-[0.9] tracking-tighter mb-8">
-              Empowering <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">Green Visionaries.</span>
+            <h1 className="text-6xl md:text-8xl font-black text-slate-900 dark:text-white leading-[0.9] tracking-tighter mb-8">
+              Ignite <span className="text-emerald-500">Change</span> <br /> Save Earth.
             </h1>
-            
-            <p className="text-xl text-gray-500 dark:text-gray-400 mb-10 max-w-xl font-medium leading-relaxed">
-              EcoSpark Hub is the global stage for sustainable innovation. Share, fund, and scale ideas that redefine our relationship with the planet.
+            <p className="text-xl text-slate-500 dark:text-slate-400 mb-10 max-w-lg leading-relaxed">
+              আপনার পরিবেশবান্ধব আইডিয়াগুলো শেয়ার করুন, তহবিল সংগ্রহ করুন এবং বিশ্বজুড়ে টেকসই পরিবর্তনের অংশ হোন।
             </p>
-
-            <div className="flex flex-wrap gap-4 mb-20">
-              <Link 
-                href="/ideas/create"
-                className="bg-gray-900 dark:bg-emerald-600 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-2xl shadow-gray-200 dark:shadow-emerald-900/40 flex items-center gap-3 active:scale-95"
-              >
-                Submit Idea <Plus size={20} />
+            <div className="flex flex-wrap gap-4">
+              <Link href="/ideas/create" className="bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 dark:shadow-none flex items-center gap-3 active:scale-95">
+                Launch Idea <Plus size={20} />
               </Link>
-              <button 
-                onClick={() => document.getElementById('discover-section')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 px-10 py-5 rounded-3xl font-black uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center gap-3 active:scale-95"
-              >
-                Discover <ArrowRight size={20} />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-10">
-              <div>
-                <div className="text-2xl font-black text-gray-900 dark:text-white">85K+</div>
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Active Ideas</div>
-              </div>
-              <div className="w-px h-10 bg-gray-100 dark:bg-gray-800" />
-              <div>
-                <div className="text-2xl font-black text-gray-900 dark:text-white">$2.4M</div>
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Community Funding</div>
-              </div>
             </div>
           </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8, rotate: 5 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            transition={{ duration: 1, ease: "anticipate" as const }}
-            className="relative hidden lg:block"
-          >
-            <div className="relative rounded-[60px] overflow-hidden shadow-2xl shadow-emerald-200/50 dark:shadow-emerald-950/20 aspect-[4/5] bg-gray-100">
-              <Image 
-                src="https://images.unsplash.com/photo-1542601906990-b4d3fb773b09?q=80&w=1000&auto=format&fit=crop" 
-                alt="Environmental Innovation" 
-                fill
-                className="object-cover"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute bottom-12 left-12 right-12">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 relative overflow-hidden">
-                        <Image src={`https://i.pravatar.cc/100?u=user${i}`} alt="User" fill />
-                      </div>
-                    ))}
-                  </div>
-                  <span className="text-white/80 text-xs font-bold">+12k supporters</span>
-                </div>
-                <h3 className="text-2xl font-black text-white mb-2 tracking-tight">AI-Driven Vertical Micro-Forests</h3>
-                <p className="text-white/60 text-sm font-medium">Revolutionizing urban air quality with modular tech.</p>
-              </div>
+          <div className="relative">
+            <div className="aspect-square bg-slate-100 dark:bg-slate-900 rounded-[60px] overflow-hidden border-8 border-white dark:border-slate-800 shadow-2xl relative">
+              <Image src="https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?q=80&w=1000" alt="Nature" fill className="object-cover opacity-80" />
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/40 to-transparent" />
             </div>
-
-            <motion.div 
-              animate={{ y: [0, -20, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -top-10 -right-10 bg-white dark:bg-gray-800 p-8 rounded-[32px] shadow-2xl border border-gray-50 dark:border-gray-700 z-20"
-            >
-              <Zap className="text-amber-500 mb-2" size={32} />
-              <div className="font-black text-gray-900 dark:text-white uppercase tracking-widest text-[10px]">Power Saved</div>
-              <div className="text-2xl font-black text-emerald-600">1.2 GWh/yr</div>
+            {/* Floating Mini Stats */}
+            <motion.div animate={{ y: [0, -20, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute -top-10 -right-5 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-2xl border border-slate-50 dark:border-slate-700">
+              <BarChart3 className="text-emerald-500 mb-2" size={32} />
+              <div className="text-2xl font-black text-slate-900 dark:text-white">850+</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase">Projects Funded</div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Partner Trust Bar */}
-      <section className="py-20 border-y border-gray-100 dark:border-gray-800">
+      {/* --- 2. IMPACT TRACKER (NEW FEATURE) --- */}
+      <section className="py-20 bg-slate-50 dark:bg-slate-900/30">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {[
+            { label: 'CO2 Reduced', val: '12.4M Tons', icon: <Leaf /> },
+            { label: 'Green Energy', val: '45.8 GWh', icon: <Zap /> },
+            { label: 'Contributors', val: '240K+', icon: <Globe /> },
+            { label: 'Verified Ideas', val: '12,000+', icon: <ShieldCheck /> }
+          ].map((item, i) => (
+            <div key={i} className="text-center group">
+              <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4 text-emerald-500 shadow-sm group-hover:scale-110 transition-transform">
+                {item.icon}
+              </div>
+              <div className="text-3xl font-black text-slate-900 dark:text-white">{item.val}</div>
+              <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{item.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* --- 3. BENTO GRID: WHY ECOSPARKHUB? --- */}
+      <section className="py-32">
         <div className="max-w-7xl mx-auto px-6">
-          <p className="text-center text-gray-400 font-black uppercase tracking-widest text-[10px] mb-10">Trusted by Global Environmental Leaders</p>
-          <div className="flex flex-wrap justify-center gap-12 md:gap-20 opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
-            {['GreenWorld', 'EcoVision', 'FutureEarth', 'BioMatrix', 'SustainCorp'].map(name => (
-              <div key={name} className="font-black text-2xl text-gray-400 dark:text-gray-600 tracking-tighter">{name}</div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Search & Discover Section */}
-      <section id="discover-section" className="py-32 px-6 scroll-mt-24">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white tracking-tighter mb-6">Discover Innovations</h2>
-            <p className="text-gray-500 dark:text-gray-400 font-medium max-w-2xl mx-auto">Explore thousands of community-driven projects addressing our most critical environmental challenges.</p>
-          </div>
-
-          <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto mb-20 bg-gray-50 dark:bg-gray-900 p-4 rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-sm">
-            <div className="relative flex-1">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search by keyword, category, or project name..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent text-gray-900 dark:text-white py-4 pl-16 pr-6 outline-none font-bold"
-              />
-            </div>
-            <div className="flex gap-4">
-              <select 
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-4 px-6 rounded-2xl outline-none font-bold cursor-pointer border border-gray-100 dark:border-gray-700"
-              >
-                <option value="">All Categories</option>
-                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-              <button type="submit" className="bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-emerald-700 transition shadow-lg active:scale-95">
-                Search
-              </button>
-            </div>
-          </form>
-
-          {/* Idea Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            <AnimatePresence mode="wait">
-              {loading ? (
-                [1, 2, 3, 4, 5, 6].map(i => (
-                  <div key={i} className="h-[450px] bg-gray-50 dark:bg-gray-900 rounded-[48px] animate-pulse" />
-                ))
-              ) : ideas.length > 0 ? (
-                ideas.slice(0, 6).map((idea, i) => (
-                  <motion.div 
-                    key={idea.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    whileHover={{ y: -10 }}
-                    className="group bg-white dark:bg-gray-900 rounded-[48px] shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden"
-                  >
-                    <div className="relative h-64 bg-gray-100">
-                      <Image 
-                        src={idea.images?.[0] || `https://images.unsplash.com/photo-1466611653911-95282fc3656b?q=80&w=800&auto=format&fit=crop&seed=${idea.id}`} 
-                        alt={idea.title}
-                        fill
-                        className="object-cover group-hover:scale-110 transition duration-700"
-                      />
-                      <div className="absolute top-6 left-6">
-                        <span className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md text-emerald-700 dark:text-emerald-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
-                          {idea.category?.name || idea.category || 'General'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-10 flex flex-col h-[calc(450px-256px)]">
-                      <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight line-clamp-1">{idea.title}</h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-8 line-clamp-2 flex-1">{idea.description}</p>
-                      
-                      <div className="flex items-center justify-between pt-6 border-t border-gray-50 dark:border-gray-800">
-                        <Link 
-                          href={`/ideas/${idea.id}`}
-                          className="text-gray-900 dark:text-white font-black text-xs uppercase tracking-widest flex items-center gap-2 group-hover:text-emerald-600 transition-colors"
-                        >
-                          Details <ArrowRight size={16} />
-                        </Link>
-                        {idea.isPaid && (
-                          <span className="bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                            Premium
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))
-              ) : (
-                <div className="col-span-full py-20 text-center">
-                  <Globe className="mx-auto text-gray-200 mb-6" size={64} />
-                  <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">No eco-innovations found.</p>
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="mt-20 text-center">
-            <Link 
-              href="/ideas"
-              className="inline-flex items-center gap-2 text-emerald-600 font-black uppercase tracking-widest text-sm hover:gap-4 transition-all"
-            >
-              Explore all community shares <ChevronRight size={20} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Modern Bento Grid Features Section */}
-      <section className="py-32 bg-gray-900 text-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-20 mb-20 items-end">
-            <div>
-              <div className="text-emerald-400 font-black uppercase tracking-widest text-xs mb-4">Core Ecosystem</div>
-              <h2 className="text-4xl md:text-6xl font-black tracking-tighter">Everything you need to <span className="text-emerald-400">ignite change.</span></h2>
-            </div>
-            <p className="text-gray-400 text-xl font-medium max-w-md leading-relaxed">
-              We provide the tools, the network, and the capital to transform sketches on napkins into global climate solutions.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[300px]">
-            <motion.div {...fadeInUp} className="md:col-span-2 bg-emerald-600 rounded-[48px] p-12 flex flex-col justify-between relative overflow-hidden group">
-              <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[100%] bg-white/10 blur-[80px] rounded-full group-hover:scale-150 transition-transform duration-1000" />
-              <LayoutGrid size={48} className="text-emerald-100/50 mb-8" />
-              <div>
-                <h3 className="text-3xl font-black mb-4">Community Governance</h3>
-                <p className="text-emerald-50/80 font-medium max-w-md">Our community votes on which ideas get vetted and highlighted. Real democracy for a real environment.</p>
-              </div>
-            </motion.div>
-
-            <motion.div {...fadeInUp} className="bg-gray-800 rounded-[48px] p-10 flex flex-col justify-end group">
-              <Zap size={32} className="text-amber-400 mb-6" />
-              <h3 className="text-2xl font-black mb-2">Rapid Prototyping</h3>
-              <p className="text-gray-400 text-sm font-medium">Access blueprints and technical data from shared open-source projects.</p>
-            </motion.div>
-
-            <motion.div {...fadeInUp} className="bg-white text-gray-900 rounded-[48px] p-10 flex flex-col items-center justify-center text-center group">
-              <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-6 text-emerald-600 group-hover:rotate-12 transition-transform">
-                <ShieldCheck size={40} />
-              </div>
-              <h3 className="text-2xl font-black mb-2">Authenticated</h3>
-              <p className="text-gray-500 text-sm font-medium">Every idea is manually verified by our environmental ethics board.</p>
-            </motion.div>
-
-            <motion.div {...fadeInUp} className="md:col-span-2 bg-gradient-to-br from-teal-500 to-emerald-700 rounded-[48px] p-12 flex flex-col md:flex-row items-center gap-12 group">
-              <div className="flex-1">
-                <h3 className="text-3xl font-black mb-4">Global Reach</h3>
-                <p className="text-emerald-50/80 font-medium leading-relaxed">Connect with experts across 120 countries and 5 continents to scale your sustainability project locally.</p>
-              </div>
-              <div className="w-48 h-48 bg-white/10 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center">
-                <Globe size={80} className="text-white animate-[spin_10s_linear_infinite]" />
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Top Projects Spotlight */}
-      <section className="py-32 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
-            <div>
-              <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter mb-4">Top Rated Projects</h2>
-              <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Highest environmental impact scores</p>
-            </div>
-            <Link href="/ideas?sort=top_voted" className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-100 transition-all">
-              View All Rankings
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {topIdeas.map((idea, index) => (
-              <motion.div 
-                key={idea.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="relative bg-white dark:bg-gray-900 p-12 rounded-[56px] border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-100/50 dark:shadow-none overflow-hidden group"
-              >
-                <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-emerald-50 dark:bg-emerald-900/10 rounded-full group-hover:scale-110 transition-transform -z-1" />
-                
-                <div className="flex items-center justify-between mb-8">
-                  <div className="w-16 h-16 bg-emerald-600 text-white rounded-[24px] flex items-center justify-center font-black text-2xl shadow-lg shadow-emerald-200 dark:shadow-emerald-900/40">
-                    {index + 1}
-                  </div>
-                  <div className="flex items-center gap-1 text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-full">
-                    <Star size={14} fill="currentColor" />
-                    <span className="text-[10px] font-black uppercase">Elite</span>
-                  </div>
-                </div>
-
-                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-6 leading-tight">{idea.title}</h3>
-                <p className="text-gray-500 dark:text-gray-400 font-medium mb-10 leading-relaxed italic line-clamp-3">
-                  &quot;{idea.description}&quot;
-                </p>
-
-                <div className="pt-8 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Impact Score</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-black text-lg">9.8/10</span>
-                  </div>
-                  <Link 
-                    href={`/ideas/${idea.id}`}
-                    className="w-12 h-12 rounded-full bg-gray-900 dark:bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-600 transition-colors shadow-lg"
-                  >
-                    <ArrowRight size={20} />
-                  </Link>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="py-32 bg-gray-50 dark:bg-gray-900/30">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="text-center mb-20">
-            <HelpCircle className="mx-auto text-emerald-500 mb-8" size={64} />
-            <h2 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white tracking-tighter mb-6">Frequently Asked</h2>
-          </div>
-
-          <div className="space-y-6">
-            {[
-              { q: "How do I submit an idea?", a: "Create an account, go to the share page, and fill out our guided sustainability form. Our experts will review it within 48 hours." },
-              { q: "What defines a 'Premium' idea?", a: "Premium ideas often include detailed technical blueprints, supply chain contacts, or proprietary data that authors have opted to monetize." },
-              { q: "Can I invest in these projects?", a: "Currently, our platform facilitates community support and direct purchase of plans. Direct investment features are coming in late 2026." },
-              { q: "Is EcoSpark Hub non-profit?", a: "We are a mission-driven social enterprise. We take 0% of community sales, reinvesting platform fees into scaling local green projects." }
-            ].map((faq, i) => (
-              <details key={i} className="group bg-white dark:bg-gray-800 rounded-[32px] border border-gray-100 dark:border-gray-700 open:shadow-xl transition-all">
-                <summary className="flex items-center justify-between p-8 cursor-pointer list-none font-black text-gray-900 dark:text-white uppercase tracking-widest text-xs">
-                  {faq.q}
-                  <ChevronRight size={20} className="text-emerald-500 group-open:rotate-90 transition-transform" />
-                </summary>
-                <div className="px-8 pb-8 text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
-                  {faq.a}
-                </div>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Newsletter with Avatars */}
-      <section className="py-40 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-emerald-900 dark:bg-emerald-950 -z-20" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-emerald-400/10 blur-[160px] rounded-full -z-10" />
-        
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
-          <div>
-            <h2 className="text-5xl md:text-7xl font-black text-white leading-none tracking-tighter mb-10">
-              The Future of <br />
-              <span className="text-emerald-400 italic font-serif">Sustainability</span> <br />
-              in Your Inbox.
-            </h2>
-            <div className="flex items-center gap-6">
-              <div className="flex -space-x-3">
-                {[10, 11, 12, 13].map(i => (
-                  <div key={i} className="w-12 h-12 rounded-full border-4 border-emerald-900 bg-gray-200 relative overflow-hidden">
-                    <Image src={`https://i.pravatar.cc/100?u=sub${i}`} alt="User" fill />
-                  </div>
-                ))}
-              </div>
-              <p className="text-white text-sm font-black uppercase tracking-widest">Joined daily by experts</p>
-            </div>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-2xl p-12 rounded-[60px] border border-white/20">
-            <Mail className="text-emerald-400 mb-8" size={56} />
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-              <div className="space-y-2">
-                <label className="text-[10px] text-white/50 font-black uppercase tracking-[0.2em]">Contact Email</label>
-                <input 
-                  type="email" 
-                  placeholder="name@company.com" 
-                  className="w-full bg-white/10 border-none rounded-2xl py-5 px-8 text-white outline-none focus:bg-white/20 transition-all font-bold placeholder:text-white/20"
-                />
-              </div>
-              <button className="w-full bg-white text-emerald-900 py-6 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-2xl active:scale-95">
-                Join Network Now
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-20 px-6 bg-white dark:bg-gray-950 border-t border-gray-50 dark:border-gray-900">
-        <div className="max-w-7xl mx-auto text-center md:text-left">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-16 mb-20">
-            <div className="col-span-2">
-              <div className="flex items-center gap-3 mb-8 justify-center md:justify-start">
-                <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
-                  <Leaf size={24} />
-                </div>
-                <span className="font-black text-2xl text-gray-900 dark:text-white tracking-tighter">EcoSpark Hub</span>
-              </div>
-              <p className="text-gray-400 font-medium max-w-xs mb-10 leading-relaxed mx-auto md:mx-0">
-                Empowering the next generation of environmental leaders through decentralized community innovation.
+          <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter mb-20 text-center">
+            How We Empower <br /> <span className="text-emerald-500">Green Innovators.</span>
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="p-10 bg-emerald-600 rounded-[48px] text-white md:col-span-2 relative overflow-hidden">
+              <Rocket size={48} className="mb-6 opacity-50" />
+              <h3 className="text-3xl font-black mb-4">Incubation & Mentorship</h3>
+              <p className="text-emerald-50/80 font-medium max-w-md italic">
+                আমরা শুধু আইডিয়া শেয়ার করি না, আমরা সেগুলোকে বাস্তবে রূপ দিতে বিশেষজ্ঞদের মাধ্যমে মেন্টরশিপ প্রদান করি।
               </p>
+              <div className="absolute right-[-10%] bottom-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl" />
             </div>
-            {/* Footer links sections... (keep your existing logic here) */}
+            <div className="p-10 bg-slate-900 rounded-[48px] text-white flex flex-col justify-between">
+              <ShieldAlert size={32} className="text-amber-400" />
+              <div>
+                <h3 className="text-2xl font-black mb-2">Ethics Board</h3>
+                <p className="text-slate-400 text-sm">প্রতিটি প্রজেক্ট আমাদের এনভায়রনমেন্টাল এথিক্স বোর্ড দ্বারা যাচাইকৃত।</p>
+              </div>
+            </div>
+            <div className="p-10 bg-slate-100 dark:bg-slate-800 rounded-[48px] text-slate-900 dark:text-white">
+              <Target size={32} className="text-emerald-500 mb-6" />
+              <h3 className="text-2xl font-black mb-2">Precision Funding</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">সরাসরি ক্রিপ্টো বা লোকাল পেমেন্টের মাধ্যমে আপনার প্রজেক্টে ফান্ড সংগ্রহ করুন।</p>
+            </div>
+            <div className="p-10 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[48px] md:col-span-2 flex items-center gap-8">
+              <div className="hidden sm:block w-32 h-32 bg-emerald-100 dark:bg-emerald-500/10 rounded-3xl flex-shrink-0" />
+              <div>
+                <h3 className="text-2xl font-black mb-2 text-slate-900 dark:text-white">EcoSpark Marketplace</h3>
+                <p className="text-slate-500 dark:text-slate-400">পরিবেশবান্ধব ব্লুপ্রিন্ট কেনা-বেচার জন্য আমাদের নিজস্ব প্রিমিয়াম মার্কেটপ্লেস।</p>
+              </div>
+            </div>
           </div>
-          <div className="pt-10 border-t border-gray-50 dark:border-gray-900 flex flex-col md:flex-row justify-between items-center gap-8">
-            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">© 2026 EcoSpark Hub. All rights reserved.</p>
-            <p className="text-gray-400 text-xs font-black uppercase tracking-widest underline decoration-emerald-500/30">Bangladesh HQ 🇧🇩</p>
+        </div>
+      </section>
+
+      {/* --- 4. INVESTOR SPOTLIGHT (NEW FEATURE) --- */}
+      <section className="py-32 bg-[#0a0a0a] text-white overflow-hidden relative">
+        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 items-center gap-20">
+          <div>
+            <div className="text-emerald-400 font-black text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+              <Award size={16} /> Partner with us
+            </div>
+            <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8 leading-none">
+              Are you an <br /> <span className="text-emerald-400">Investor?</span>
+            </h2>
+            <p className="text-slate-400 text-lg mb-10 leading-relaxed">
+              বিশ্বের সবচেয়ে সম্ভাবনাময় গ্রিন প্রজেক্টগুলোতে সরাসরি বিনিয়োগ করুন। আমরা ডাটা-চালিত ইমপ্যাক্ট রিপোর্ট প্রদান করি।
+            </p>
+            <button className="px-10 py-5 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-400 transition-all">
+              Become a Partner
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+             {[1,2,3,4].map(i => (
+               <div key={i} className="aspect-square bg-slate-800/50 backdrop-blur-xl rounded-[40px] border border-white/5 flex items-center justify-center p-8">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-white/10 rounded-full mx-auto mb-4" />
+                    <div className="h-2 w-20 bg-white/20 rounded-full mx-auto mb-2" />
+                    <div className="h-2 w-12 bg-white/10 rounded-full mx-auto" />
+                  </div>
+               </div>
+             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- 5. LATEST IDEAS GRID --- */}
+      <section id="discover-section" className="py-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-20">
+            <div>
+              <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter">Discover Innovations</h2>
+              <div className="h-1.5 w-24 bg-emerald-500 mt-4 rounded-full" />
+            </div>
+            <Link href="/ideas" className="text-slate-400 hover:text-emerald-500 font-black uppercase tracking-widest text-xs flex items-center gap-2 transition-all">
+              Explore All <ChevronRight size={16} />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {loading ? (
+              [1, 2, 3].map(i => <div key={i} className="h-96 bg-slate-50 dark:bg-slate-900 animate-pulse rounded-[48px]" />)
+            ) : (
+              ideas.slice(0, 3).map((idea, i) => (
+                <motion.div key={idea.id} whileHover={{ y: -10 }} className="group bg-white dark:bg-slate-900 rounded-[48px] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-emerald-500/5 transition-all duration-500">
+                  <div className="relative h-64 overflow-hidden">
+                    <Image src={idea.images?.[0] || `https://images.unsplash.com/photo-1518005020480-1cd34333799c?q=80&w=800`} alt={idea.title} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                    <div className="absolute top-6 left-6 flex gap-2">
+                       <span className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                         {idea.category || 'Environmental'}
+                       </span>
+                       {idea.isPaid && <span className="bg-amber-400 text-amber-900 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">Premium</span>}
+                    </div>
+                  </div>
+                  <div className="p-10">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 line-clamp-1">{idea.title}</h3>
+                    <div className="flex items-center justify-between mt-8 pt-8 border-t border-slate-50 dark:border-slate-800">
+                       <Link href={`/ideas/${idea.id}`} className="font-black text-xs uppercase tracking-widest text-slate-400 group-hover:text-emerald-500 flex items-center gap-2">
+                         Explore <ArrowRight size={16} />
+                       </Link>
+                       <div className="flex items-center gap-1 text-slate-400">
+                          <Heart size={14} className="group-hover:text-rose-500 transition-colors" />
+                          <span className="text-xs font-bold">2.4k</span>
+                       </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* --- 6. NEWSLETTER --- */}
+      <section className="py-32 px-6">
+        <div className="max-w-5xl mx-auto bg-emerald-50 dark:bg-emerald-500/5 rounded-[60px] p-12 md:p-24 text-center border border-emerald-100 dark:border-emerald-500/10">
+          <Mail className="mx-auto text-emerald-500 mb-8" size={64} />
+          <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">Stay in the Green Loop.</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-10 max-w-lg mx-auto">সাপ্তাহিক সেরা গ্রিন আইডিয়া এবং আপডেট পেতে আমাদের সাথে যুক্ত থাকুন।</p>
+          <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <input type="email" placeholder="Enter your email" className="flex-1 bg-white dark:bg-slate-800 border-none rounded-2xl py-5 px-8 outline-none focus:ring-2 ring-emerald-500 shadow-sm" />
+            <button className="bg-slate-900 dark:bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest hover:opacity-90 transition-all">Join</button>
+          </form>
+        </div>
+      </section>
+
+      {/* --- 7. FOOTER --- */}
+      <footer className="py-20 bg-white dark:bg-[#050505] border-t border-slate-50 dark:border-slate-900">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-10 mb-16">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-emerald-200 dark:shadow-none">
+                <Leaf size={28} />
+              </div>
+              <span className="font-black text-3xl text-slate-900 dark:text-white tracking-tighter">EcoSpark Hub</span>
+            </div>
+            <div className="flex gap-10">
+               {['About', 'Ideas', 'Investors', 'FAQ'].map(item => (
+                 <Link key={item} href="#" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-emerald-500 transition-colors">{item}</Link>
+               ))}
+            </div>
+          </div>
+          <div className="pt-10 border-t border-slate-50 dark:border-slate-900 flex justify-between items-center">
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">© 2026 EcoSpark Hub • BD HQ 🇧🇩</p>
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 hover:text-emerald-500 cursor-pointer transition-colors"><Globe size={16} /></div>
+            </div>
           </div>
         </div>
       </footer>
