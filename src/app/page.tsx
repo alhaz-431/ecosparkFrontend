@@ -40,7 +40,7 @@ export default function HomePage() {
     <div className="bg-white dark:bg-[#050505] min-h-screen selection:bg-emerald-200">
       <Toaster position="top-center" />
 
-      {/* --- 1. ENHANCED HERO SECTION --- */}
+      {/* --- 1. HERO SECTION --- */}
       <section className="relative pt-32 pb-20 overflow-hidden">
         <div className="absolute top-0 right-0 w-[50%] h-[70%] bg-emerald-500/5 blur-[120px] rounded-full -z-10" />
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
@@ -52,7 +52,7 @@ export default function HomePage() {
               Ignite <span className="text-emerald-500">Change</span> <br /> Save Earth.
             </h1>
             <p className="text-xl text-slate-500 dark:text-slate-400 mb-10 max-w-lg leading-relaxed">
-              আপনার পরিবেশবান্ধব আইডিয়াগুলো শেয়ার করুন, তহবিল সংগ্রহ করুন এবং বিশ্বজুড়ে টেকসই পরিবর্তনের অংশ হোন।
+              আপনার পরিবেশবান্ধব আইডিয়াগুলো শেয়ার করুন, তহবিল সংগ্রহ করুন এবং বিশ্বজুড়ে টেকসই পরিবর্তনের অংশ হোন।
             </p>
             <div className="flex flex-wrap gap-4">
               <Link href="/ideas/create" className="bg-emerald-600 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 dark:shadow-none flex items-center gap-3 active:scale-95">
@@ -65,7 +65,6 @@ export default function HomePage() {
               <Image src="https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?q=80&w=1000" alt="Nature" fill className="object-cover opacity-80" />
               <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/40 to-transparent" />
             </div>
-            {/* Floating Mini Stats */}
             <motion.div animate={{ y: [0, -20, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute -top-10 -right-5 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-2xl border border-slate-50 dark:border-slate-700">
               <BarChart3 className="text-emerald-500 mb-2" size={32} />
               <div className="text-2xl font-black text-slate-900 dark:text-white">850+</div>
@@ -75,7 +74,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* --- 2. IMPACT TRACKER (NEW FEATURE) --- */}
+      {/* --- 2. IMPACT TRACKER --- */}
       <section className="py-20 bg-slate-50 dark:bg-slate-900/30">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
           {[
@@ -95,7 +94,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* --- 3. BENTO GRID: WHY ECOSPARKHUB? --- */}
+      {/* --- 3. BENTO GRID --- */}
       <section className="py-32">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter mb-20 text-center">
@@ -106,7 +105,7 @@ export default function HomePage() {
               <Rocket size={48} className="mb-6 opacity-50" />
               <h3 className="text-3xl font-black mb-4">Incubation & Mentorship</h3>
               <p className="text-emerald-50/80 font-medium max-w-md italic">
-                আমরা শুধু আইডিয়া শেয়ার করি না, আমরা সেগুলোকে বাস্তবে রূপ দিতে বিশেষজ্ঞদের মাধ্যমে মেন্টরশিপ প্রদান করি।
+                আমরা শুধু আইডিয়া শেয়ার করি না, আমরা সেগুলোকে বাস্তবে রূপ দিতে বিশেষজ্ঞদের মাধ্যমে মেন্টরশিপ প্রদান করি।
               </p>
               <div className="absolute right-[-10%] bottom-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl" />
             </div>
@@ -126,14 +125,14 @@ export default function HomePage() {
               <div className="hidden sm:block w-32 h-32 bg-emerald-100 dark:bg-emerald-500/10 rounded-3xl flex-shrink-0" />
               <div>
                 <h3 className="text-2xl font-black mb-2 text-slate-900 dark:text-white">EcoSpark Marketplace</h3>
-                <p className="text-slate-500 dark:text-slate-400">পরিবেশবান্ধব ব্লুপ্রিন্ট কেনা-বেচার জন্য আমাদের নিজস্ব প্রিমিয়াম মার্কেটপ্লেস।</p>
+                <p className="text-slate-500 dark:text-slate-400">পরিবেশবান্ধব ব্লুপ্রিন্ট কেনা-বেচার জন্য আমাদের নিজস্ব প্রিমিয়াম মার্কেটপ্লেস।</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* --- 4. INVESTOR SPOTLIGHT (NEW FEATURE) --- */}
+      {/* --- 4. INVESTOR SPOTLIGHT --- */}
       <section className="py-32 bg-[#0a0a0a] text-white overflow-hidden relative">
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 items-center gap-20">
           <div>
@@ -144,7 +143,7 @@ export default function HomePage() {
               Are you an <br /> <span className="text-emerald-400">Investor?</span>
             </h2>
             <p className="text-slate-400 text-lg mb-10 leading-relaxed">
-              বিশ্বের সবচেয়ে সম্ভাবনাময় গ্রিন প্রজেক্টগুলোতে সরাসরি বিনিয়োগ করুন। আমরা ডাটা-চালিত ইমপ্যাক্ট রিপোর্ট প্রদান করি।
+              বিশ্বের সবচেয়ে সম্ভাবনাময় গ্রিন প্রজেক্টগুলোতে সরাসরি বিনিয়োগ করুন। আমরা ডাটা-চালিত ইমপ্যাক্ট রিপোর্ট প্রদান করি।
             </p>
             <button className="px-10 py-5 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-400 transition-all">
               Become a Partner
@@ -187,7 +186,8 @@ export default function HomePage() {
                     <Image src={idea.images?.[0] || `https://images.unsplash.com/photo-1518005020480-1cd34333799c?q=80&w=800`} alt={idea.title} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                     <div className="absolute top-6 left-6 flex gap-2">
                        <span className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-600">
-                         {idea.category || 'Environmental'}
+                         {/* এখানে ফিক্স করা হয়েছে: অবজেক্ট চেক করা হচ্ছে */}
+                         {typeof idea.category === 'object' ? idea.category.name : (idea.category || 'Environmental')}
                        </span>
                        {idea.isPaid && <span className="bg-amber-400 text-amber-900 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">Premium</span>}
                     </div>
@@ -216,10 +216,10 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto bg-emerald-50 dark:bg-emerald-500/5 rounded-[60px] p-12 md:p-24 text-center border border-emerald-100 dark:border-emerald-500/10">
           <Mail className="mx-auto text-emerald-500 mb-8" size={64} />
           <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6">Stay in the Green Loop.</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-10 max-w-lg mx-auto">সাপ্তাহিক সেরা গ্রিন আইডিয়া এবং আপডেট পেতে আমাদের সাথে যুক্ত থাকুন।</p>
+          <p className="text-slate-500 dark:text-slate-400 mb-10 max-w-lg mx-auto">সাপ্তাহিক সেরা গ্রিন আইডিয়া এবং আপডেট পেতে আমাদের সাথে যুক্ত থাকুন।</p>
           <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
             <input type="email" placeholder="Enter your email" className="flex-1 bg-white dark:bg-slate-800 border-none rounded-2xl py-5 px-8 outline-none focus:ring-2 ring-emerald-500 shadow-sm" />
-            <button className="bg-slate-900 dark:bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest hover:opacity-90 transition-all">Join</button>
+            <button type="button" className="bg-slate-900 dark:bg-emerald-600 text-white px-8 py-5 rounded-2xl font-black uppercase tracking-widest hover:opacity-90 transition-all">Join</button>
           </form>
         </div>
       </section>
