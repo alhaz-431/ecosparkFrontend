@@ -180,7 +180,7 @@ export default function HomePage() {
              <div className="mt-12 flex items-center justify-center gap-4">
                <div className="w-14 h-14 bg-emerald-600 rounded-full flex items-center justify-center text-white font-black">AI</div>
                <div className="text-left">
-                 <h5 className="font-black text-gray-900 uppercase text-sm">Ariful Islam</h5>
+                 <h5 className="font-black text-gray-900 uppercase text-sm">Mohammad Alhaz</h5>
                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Green Developer</p>
                </div>
              </div>
@@ -208,20 +208,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* --- ৮. সিম্পল ফুটার (Navy Blue) --- */}
-      <footer className="bg-[#001f3f] py-16 px-6 border-t border-blue-900/50">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
-          <div>
-            <h3 className="text-2xl font-black text-white tracking-widest uppercase">Eco<span className="text-emerald-400">Spark</span></h3>
-            <p className="text-blue-300 text-xs font-bold mt-2 uppercase tracking-widest">© 2026 Sustainability Hub. All Rights Reserved.</p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-8">
-             <Link href="#" className="text-blue-200 hover:text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em] transition-all">Privacy</Link>
-             <Link href="#" className="text-blue-200 hover:text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em] transition-all">Terms</Link>
-             <Link href="#" className="text-blue-200 hover:text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em] transition-all">Contact Us</Link>
-          </div>
-        </div>
-      </footer>
+     
     </div>
   );
 }
