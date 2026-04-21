@@ -41,26 +41,26 @@ export default function AdminDashboard() {
     setUser(parsedUser);
     fetchData();
   }, [router]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [ideasRes, usersRes, purchasesRes] = await Promise.all([
-        api.get('/admin/ideas'),
-        api.get('/admin/users'),
-        api.get('/admin/purchases') // ব্যাকএন্ডের নতুন রাউট অনুযায়ী
-      ]);
-      
-      setIdeas(ideasRes.data || []);
-      setUsers(usersRes.data || []);
-      setPurchases(purchasesRes.data || []);
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchData = async () => {
+  setLoading(true);
+  try {
+    const [ideasRes, usersRes, purchasesRes] = await Promise.all([
+      api.get('/admin/ideas').catch(err => { console.error("Idea Error:", err); return { data: [] }; }),
+      api.get('/admin/users').catch(err => { console.error("User Error:", err); return { data: [] }; }),
+      api.get('/admin/purchases').catch(err => { console.error("Purchase Error:", err); return { data: [] }; })
+    ]);
+    
+    // ডাটা সেট করার সময় সরাসরি array কিনা চেক করা হচ্ছে
+    setIdeas(Array.isArray(ideasRes.data) ? ideasRes.data : []);
+    setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+    setPurchases(Array.isArray(purchasesRes.data) ? purchasesRes.data : []);
+  } catch (error) {
+    console.error('General Fetch Error:', error);
+    toast.error('Failed to load dashboard data');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // --- আইডিয়া স্ট্যাটাস আপডেট ---
   const handleStatusUpdate = async (id: string, status: string) => {
