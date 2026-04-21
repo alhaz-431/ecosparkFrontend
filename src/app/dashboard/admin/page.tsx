@@ -48,11 +48,12 @@ export default function AdminDashboard() {
       const [ideasRes, usersRes, purchasesRes] = await Promise.all([
         api.get('/admin/ideas'),
         api.get('/admin/users'),
-        api.get('/admin/purchases').catch(() => ({ data: [] }))
+        api.get('/admin/purchases') // ব্যাকএন্ডের নতুন রাউট অনুযায়ী
       ]);
-      setIdeas(ideasRes.data || ideasRes.data.data || []);
-      setUsers(usersRes.data || usersRes.data.data || []);
-      setPurchases(purchasesRes.data || purchasesRes.data.data || []);
+      
+      setIdeas(ideasRes.data || []);
+      setUsers(usersRes.data || []);
+      setPurchases(purchasesRes.data || []);
     } catch (error) {
       console.error('Error fetching admin data:', error);
       toast.error('Failed to load dashboard data');
@@ -61,7 +62,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- আইডিয়া স্ট্যাটাস আপডেট (Approve/Reject সবসময় খোলা থাকবে) ---
+  // --- আইডিয়া স্ট্যাটাস আপডেট ---
   const handleStatusUpdate = async (id: string, status: string) => {
     try {
       let feedbackNote = '';
@@ -77,15 +78,17 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- মেম্বার অ্যাক্টিভ/ডিঅ্যাক্টিভ করার ফাংশন ---
-  const handleUserStatus = async (userId: string, isDeactivated: boolean) => {
+  // --- মেম্বার অ্যাক্টিভ/ডিঅ্যাক্টিভ করার সংশোধিত ফাংশন ---
+  const handleUserStatus = async (userId: string, currentIsActive: boolean) => {
     try {
-      const action = isDeactivated ? 'activate' : 'deactivate';
+      const action = currentIsActive ? 'deactivate' : 'activate';
       if (!confirm(`Are you sure you want to ${action} this user?`)) return;
       
-      await api.patch(`/admin/users/${userId}/toggle-status`);
+      // ব্যাকএন্ড রাউট: /admin/users/:id/toggle
+      await api.patch(`/admin/users/${userId}/toggle`);
+      
       toast.success(`User ${action}d successfully!`);
-      fetchData();
+      fetchData(); // ডাটা রিফ্রেশ
     } catch (error) {
       toast.error('Failed to update user status');
     }
@@ -174,11 +177,9 @@ export default function AdminDashboard() {
                          </td>
                          <td className="px-8 py-6 text-right">
                             <div className="flex gap-2 justify-end">
-                              {/* Details বাটন যাতে অ্যাডমিন আগে দেখতে পারে */}
                               <Link href={`/ideas/${idea.id}`} className="bg-gray-100 text-gray-700 p-2 rounded-xl hover:bg-gray-200 transition">
                                 <Eye size={16} />
                               </Link>
-                              {/* Approve এবং Reject বাটন সবসময় থাকবে */}
                               <button onClick={() => handleStatusUpdate(idea.id, 'APPROVED')} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 transition">Approve</button>
                               <button onClick={() => handleStatusUpdate(idea.id, 'REJECTED')} className="bg-white border border-rose-200 text-rose-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-rose-50 transition">Reject</button>
                             </div>
@@ -190,7 +191,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Users Tab (Active/Deactivate Option) */}
+        {/* Users Tab */}
         {activeTab === 'users' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
@@ -214,10 +215,10 @@ export default function AdminDashboard() {
                          <td className="px-8 py-6 text-right">
                             {u.role !== 'ADMIN' && (
                               <button 
-                                onClick={() => handleUserStatus(u.id, u.isDeactivated)}
-                                className={`flex items-center gap-2 ml-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase transition ${u.isDeactivated ? 'bg-green-50 text-green-600 border border-green-200' : 'bg-rose-50 text-rose-600 border border-rose-200'}`}
+                                onClick={() => handleUserStatus(u.id, u.isActive)}
+                                className={`flex items-center gap-2 ml-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase transition ${!u.isActive ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100' : 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100'}`}
                               >
-                                {u.isDeactivated ? <><UserCheck size={14}/> Activate</> : <><UserMinus size={14}/> Deactivate</>}
+                                {!u.isActive ? <><UserCheck size={14}/> Activate</> : <><UserMinus size={14}/> Deactivate</>}
                               </button>
                             )}
                          </td>
@@ -228,7 +229,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Sales Tab */}
+        {/* Sales Tab (সংশোধিত পেমেন্ট লজিক) */}
         {activeTab === 'sales' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
@@ -241,21 +242,29 @@ export default function AdminDashboard() {
                    </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                   {purchases.map((sale: any) => (
-                      <tr key={sale.id}>
-                         <td className="px-8 py-6 font-black uppercase text-xs">{sale.idea?.title}</td>
-                         <td className="px-8 py-6">
-                            <p className="font-bold text-sm">{sale.user?.name}</p>
-                            <p className="text-[10px] text-gray-400">{sale.user?.email}</p>
-                         </td>
-                         <td className="px-8 py-6 text-center font-black text-emerald-600">
-                            ${(sale.amount / 100).toFixed(2)}
-                         </td>
-                         <td className="px-8 py-6 text-right text-[10px] text-gray-500 font-bold">
-                            {new Date(sale.createdAt).toLocaleDateString()}
-                         </td>
-                      </tr>
-                   ))}
+                   {purchases.length > 0 ? (
+                     purchases.map((sale: any) => (
+                        <tr key={sale.id}>
+                           <td className="px-8 py-6 font-black uppercase text-xs">
+                             {sale.idea?.title || 'N/A'}
+                           </td>
+                           <td className="px-8 py-6">
+                              <p className="font-bold text-sm">{sale.user?.name || 'Unknown'}</p>
+                              <p className="text-[10px] text-gray-400">{sale.user?.email || ''}</p>
+                           </td>
+                           <td className="px-8 py-6 text-center font-black text-emerald-600">
+                              ${sale.amount}
+                           </td>
+                           <td className="px-8 py-6 text-right text-[10px] text-gray-500 font-bold">
+                              {new Date(sale.createdAt).toLocaleDateString()}
+                           </td>
+                        </tr>
+                     ))
+                   ) : (
+                     <tr>
+                       <td colSpan={4} className="text-center py-10 text-gray-400 font-bold italic">No sales record found.</td>
+                     </tr>
+                   )}
                 </tbody>
              </table>
           </div>
