@@ -22,7 +22,6 @@ export default function IdeaDetailsPage() {
   const [idea, setIdea] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [votingId, setVotingId] = useState<string | null>(null);
 
   const fetchIdea = useCallback(async () => {
     try {
@@ -50,9 +49,9 @@ export default function IdeaDetailsPage() {
     if (id) fetchIdea();
   }, [id, fetchIdea]);
 
-  // --- ভোট ফাংশন (সংশোধিত) ---
+  // --- ভোট ফাংশন (পুরোপুরি আপডেট করা হয়েছে) ---
   const handleVote = async (e: React.MouseEvent, direction: 'up' | 'down') => {
-    e.preventDefault(); // পেজ রিফ্রেশ আটকাবে
+    e.preventDefault();
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -60,16 +59,41 @@ export default function IdeaDetailsPage() {
       return;
     }
 
-    setVotingId(idea.id);
+    const voteValue = direction === 'up' ? 1 : -1;
+    const previousIdea = { ...idea }; // এরর হলে ব্যাকআপ রাখার জন্য
+
+    // ১. Optimistic Update: ক্লিক করার সাথে সাথেই UI আপডেট হবে
+    setIdea((prev: any) => {
+      if (!prev) return prev;
+
+      // বর্তমান ভোটের অবস্থা অনুযায়ী সংখ্যা ঠিক করা
+      let newUpvotes = prev.upvotes || 0;
+      let newDownvotes = prev.downvotes || 0;
+
+      // যদি আগে অন্য কোনো ভোট দেওয়া থাকতো, সেটা সরানো
+      if (prev.userVote === 1) newUpvotes -= 1;
+      if (prev.userVote === -1) newDownvotes -= 1;
+
+      // নতুন ভোট যোগ করা
+      if (voteValue === 1) newUpvotes += 1;
+      if (voteValue === -1) newDownvotes += 1;
+
+      return {
+        ...prev,
+        userVote: voteValue,
+        upvotes: newUpvotes,
+        downvotes: newDownvotes
+      };
+    });
+
     try {
-      const voteValue = direction === 'up' ? 1 : -1;
+      // ২. এপিআই কল (পেজ রিফ্রেশ হবে না)
       await api.post(`/votes/${idea.id}/vote`, { value: voteValue });
       toast.success('ভোট আপডেট হয়েছে!');
-      fetchIdea(); // ডাটা রিফ্রেশ করা
     } catch (error: any) {
+      // ৩. এরর হলে আগের অবস্থায় ফিরিয়ে নেওয়া
+      setIdea(previousIdea);
       toast.error(error.response?.data?.message || 'Voting failed');
-    } finally {
-      setVotingId(null);
     }
   };
 
@@ -116,11 +140,12 @@ export default function IdeaDetailsPage() {
         </Link>
 
         <div className="bg-white rounded-[48px] border border-gray-100 overflow-hidden shadow-2xl shadow-gray-200/50">
-          <div className="h-[450px] bg-gray-100 relative overflow-hidden">
+          <div className="h-[450px] bg-gray-100 relative overflow-hidden text-gray-400">
             <img 
               src={idea.images?.[0] || `https://picsum.photos/seed/${idea.id}/1200/800`} 
               className="w-full h-full object-cover" 
               alt={idea.title}
+              onError={(e: any) => { e.target.src = 'https://images.unsplash.com/photo-1473300221329-027213af9fca?q=80&w=2000' }}
             />
             <div className="absolute top-8 left-8 flex flex-wrap gap-3">
               <span className="bg-white/95 backdrop-blur px-6 py-2 rounded-full font-black uppercase text-[10px] tracking-widest text-emerald-700 shadow-sm border border-emerald-50">
@@ -140,39 +165,38 @@ export default function IdeaDetailsPage() {
                 {idea.title}
               </h1>
               
-              {/* --- ভোট সেকশন (রঙিন ও রিফ্রেশমুক্ত) --- */}
-              <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-3xl border border-gray-100">
-                {/* Upvote */}
+              {/* --- ভোট বাটন (রঙিন ও ইনস্ট্যান্ট আপডেট) --- */}
+              <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-3xl border border-gray-100 shadow-inner">
+                {/* Upvote Button */}
                 <button 
                   type="button"
                   onClick={(e) => handleVote(e, 'up')}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-2xl transition-all font-black text-xs ${
+                  className={`flex items-center gap-2 px-6 py-3 rounded-2xl transition-all duration-300 font-black text-xs ${
                     idea.userVote === 1 
-                    ? 'bg-green-100 text-green-600 ring-1 ring-green-500/20 shadow-md' 
-                    : 'bg-white text-gray-400 hover:bg-green-50 hover:text-green-500 shadow-sm'
+                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 scale-105' 
+                    : 'bg-white text-gray-400 hover:bg-emerald-50 hover:text-emerald-500 border border-gray-100'
                   }`}
                 >
-                  <ThumbsUp size={18} className={idea.userVote === 1 ? 'fill-green-600' : ''} />
+                  <ThumbsUp size={18} className={idea.userVote === 1 ? 'fill-white' : ''} />
                   <span>{idea.upvotes || 0}</span>
                 </button>
 
-                {/* Downvote */}
+                {/* Downvote Button */}
                 <button 
                   type="button"
                   onClick={(e) => handleVote(e, 'down')}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-2xl transition-all font-black text-xs ${
+                  className={`flex items-center gap-2 px-6 py-3 rounded-2xl transition-all duration-300 font-black text-xs ${
                     idea.userVote === -1 
-                    ? 'bg-red-100 text-red-600 ring-1 ring-red-500/20 shadow-md' 
-                    : 'bg-white text-gray-400 hover:bg-red-50 hover:text-red-500 shadow-sm'
+                    ? 'bg-rose-500 text-white shadow-lg shadow-rose-200 scale-105' 
+                    : 'bg-white text-gray-400 hover:bg-rose-50 hover:text-rose-500 border border-gray-100'
                   }`}
                 >
-                  <ThumbsUp size={18} className={`rotate-180 ${idea.userVote === -1 ? 'fill-red-600' : ''}`} />
+                  <ThumbsUp size={18} className={`rotate-180 ${idea.userVote === -1 ? 'fill-white' : ''}`} />
                   <span>{idea.downvotes || 0}</span>
                 </button>
               </div>
             </div>
 
-            {/* Author and Date Section */}
             <div className="flex flex-wrap gap-4 mb-12">
               <div className="bg-gray-50 px-6 py-4 rounded-[24px] flex items-center gap-4 border border-gray-100">
                 <div className="bg-white p-3 rounded-xl shadow-sm text-emerald-600">
@@ -205,7 +229,6 @@ export default function IdeaDetailsPage() {
               </p>
             </div>
 
-            {/* Purchase Section */}
             <div className="flex flex-col sm:flex-row gap-4 pt-10 border-t border-gray-100">
               {isPaidIdea && !isOwner && !hasPurchased && (
                 <button 
