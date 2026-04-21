@@ -44,16 +44,19 @@ export default function HomePage() {
     <div className="bg-white selection:bg-emerald-100 selection:text-emerald-900">
       <Toaster position="top-center" />
 
-      {/* --- ১. হিরো ব্যানার --- */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      {/* --- ১. হিরো ব্যানার (আপডেটেড ইমেজ সোর্স) --- */}
+      <section className="relative h-screen flex items-center justify-center overflow-hidden bg-gray-900">
         <Image 
-          src="https://images.unsplash.com/photo-1466611653911-95282fc3656b?q=80&w=2070" 
-          alt="Eco Background" 
+          src="https://images.unsplash.com/photo-1473300221329-027213af9fca?q=80&w=2000" 
+          alt="Sustainability Green Background" 
           fill 
-          className="object-cover"
+          className="object-cover opacity-80"
           priority
+          sizes="100vw"
         />
-        <div className="absolute inset-0 bg-black/60 z-0" />
+        {/* ওভারলে আরও একটু ডার্ক করা হয়েছে টেক্সট ক্লিয়ার দেখার জন্য */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/70 z-0" />
+
         <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1 }}>
             <div className="inline-block bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-emerald-300 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest mb-8">
@@ -76,7 +79,6 @@ export default function HomePage() {
           </motion.div>
         </div>
       </section>
-
       {/* --- ২. ইমপ্যাক্ট কাউন্টার (Navy Blue) --- */}
       <section className="py-20 bg-[#001f3f] text-white">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -178,7 +180,7 @@ export default function HomePage() {
                "আমি আমার অর্গানিক ফার্মিং আইডিয়াটা নিয়ে চিন্তিত ছিলাম, কিন্তু এখানকার মেন্টরদের সাপোর্ট পেয়ে আমি আজ সফল। এখন আমার প্রজেক্ট বাস্তব হওয়ার পথে!"
              </p>
              <div className="mt-12 flex items-center justify-center gap-4">
-               <div className="w-14 h-14 bg-emerald-600 rounded-full flex items-center justify-center text-white font-black">AI</div>
+               <div className="w-14 h-14 bg-emerald-600 rounded-full flex items-center justify-center text-white font-black">Ma</div>
                <div className="text-left">
                  <h5 className="font-black text-gray-900 uppercase text-sm">Mohammad Alhaz</h5>
                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Green Developer</p>
