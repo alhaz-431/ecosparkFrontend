@@ -50,8 +50,10 @@ export default function IdeaDetailsPage() {
     if (id) fetchIdea();
   }, [id, fetchIdea]);
 
-  // --- ভোট ফাংশন ---
-  const handleVote = async (direction: 'up' | 'down') => {
+  // --- ভোট ফাংশন (সংশোধিত) ---
+  const handleVote = async (e: React.MouseEvent, direction: 'up' | 'down') => {
+    e.preventDefault(); // পেজ রিফ্রেশ আটকাবে
+
     const token = localStorage.getItem('token');
     if (!token) {
       toast.error('ভোট দিতে আগে লগইন করুন!');
@@ -62,7 +64,7 @@ export default function IdeaDetailsPage() {
     try {
       const voteValue = direction === 'up' ? 1 : -1;
       await api.post(`/votes/${idea.id}/vote`, { value: voteValue });
-      toast.success('ভোট আপডেট হয়েছে!');
+      toast.success('ভোট আপডেট হয়েছে!');
       fetchIdea(); // ডাটা রিফ্রেশ করা
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Voting failed');
@@ -138,34 +140,39 @@ export default function IdeaDetailsPage() {
                 {idea.title}
               </h1>
               
-              {/* --- নতুন ভোট সেকশন --- */}
+              {/* --- ভোট সেকশন (রঙিন ও রিফ্রেশমুক্ত) --- */}
               <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-3xl border border-gray-100">
+                {/* Upvote */}
                 <button 
-                  onClick={() => handleVote('up')}
+                  type="button"
+                  onClick={(e) => handleVote(e, 'up')}
                   className={`flex items-center gap-2 px-6 py-3 rounded-2xl transition-all font-black text-xs ${
                     idea.userVote === 1 
-                    ? 'bg-emerald-100 text-emerald-600 ring-1 ring-emerald-500/20' 
-                    : 'bg-white text-gray-400 hover:bg-emerald-50 hover:text-emerald-500 shadow-sm'
+                    ? 'bg-green-100 text-green-600 ring-1 ring-green-500/20 shadow-md' 
+                    : 'bg-white text-gray-400 hover:bg-green-50 hover:text-green-500 shadow-sm'
                   }`}
                 >
-                  <ThumbsUp size={18} className={idea.userVote === 1 ? 'fill-emerald-600' : ''} />
+                  <ThumbsUp size={18} className={idea.userVote === 1 ? 'fill-green-600' : ''} />
                   <span>{idea.upvotes || 0}</span>
                 </button>
 
+                {/* Downvote */}
                 <button 
-                  onClick={() => handleVote('down')}
+                  type="button"
+                  onClick={(e) => handleVote(e, 'down')}
                   className={`flex items-center gap-2 px-6 py-3 rounded-2xl transition-all font-black text-xs ${
                     idea.userVote === -1 
-                    ? 'bg-rose-100 text-rose-600 ring-1 ring-rose-500/20' 
-                    : 'bg-white text-gray-400 hover:bg-rose-50 hover:text-rose-500 shadow-sm'
+                    ? 'bg-red-100 text-red-600 ring-1 ring-red-500/20 shadow-md' 
+                    : 'bg-white text-gray-400 hover:bg-red-50 hover:text-red-500 shadow-sm'
                   }`}
                 >
-                  <ThumbsUp size={18} className={`rotate-180 ${idea.userVote === -1 ? 'fill-rose-600' : ''}`} />
+                  <ThumbsUp size={18} className={`rotate-180 ${idea.userVote === -1 ? 'fill-red-600' : ''}`} />
                   <span>{idea.downvotes || 0}</span>
                 </button>
               </div>
             </div>
 
+            {/* Author and Date Section */}
             <div className="flex flex-wrap gap-4 mb-12">
               <div className="bg-gray-50 px-6 py-4 rounded-[24px] flex items-center gap-4 border border-gray-100">
                 <div className="bg-white p-3 rounded-xl shadow-sm text-emerald-600">
@@ -198,6 +205,7 @@ export default function IdeaDetailsPage() {
               </p>
             </div>
 
+            {/* Purchase Section */}
             <div className="flex flex-col sm:flex-row gap-4 pt-10 border-t border-gray-100">
               {isPaidIdea && !isOwner && !hasPurchased && (
                 <button 

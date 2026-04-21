@@ -1,14 +1,17 @@
 'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react'; // আইকনগুলো ইম্পোর্ট করা হয়েছে
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('MEMBER'); 
+  const [showPassword, setShowPassword] = useState(false); // পাসওয়ার্ড দেখানোর স্টেট
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -17,19 +20,19 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-   
       const res = await api.post('/auth/login', { email, password, role });
-      
       const userRole = res.data.user.role; 
 
-     
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('role', userRole); 
       localStorage.setItem('user', JSON.stringify(res.data.user)); 
 
       toast.success('Login Successful! 🎉');
 
-      
+      // সরাসরি হোম পেজে পাঠিয়ে দেওয়া
+      router.push('/');
+
+      // নেভবার আপডেট করার জন্য সামান্য দেরিতে রিফ্রেশ
       setTimeout(() => {
         window.location.reload();
       }, 500);
@@ -45,6 +48,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-green-50 px-4">
+      <Toaster />
       <div className="bg-white p-10 rounded-[2.5rem] shadow-xl w-full max-w-md border border-green-100">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-black text-green-900">EcoSpark Login</h2>
@@ -52,30 +56,47 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
+          {/* Email Field */}
           <div>
             <label className="text-sm font-bold text-gray-700 block mb-2">Email Address</label>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none transition text-black"
-              required
-            />
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-green-300" size={18} />
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none transition text-black"
+                required
+              />
+            </div>
           </div>
 
+          {/* Password Field with Eye Icon */}
           <div>
             <label className="text-sm font-bold text-gray-700 block mb-2">Password</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none transition text-black"
-              required
-            />
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-green-300" size={18} />
+              <input
+                type={showPassword ? 'text' : 'password'} // স্টেট অনুযায়ী টাইপ চেঞ্জ হবে
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-12 pr-12 py-4 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none transition text-black"
+                required
+              />
+              {/* পাসওয়ার্ড দেখার বাটন */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-600 transition"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
+          {/* Role Selection */}
           <div className="bg-green-50/50 p-4 rounded-2xl border border-green-100">
             <p className="text-xs font-bold text-green-800 mb-3 text-center uppercase tracking-wider">Login As:</p>
             <div className="flex gap-8 justify-center">
