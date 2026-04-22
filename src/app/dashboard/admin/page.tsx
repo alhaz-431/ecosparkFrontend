@@ -5,9 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/axios';
 import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
   Lightbulb, 
   Users, 
   LogOut,
@@ -110,7 +107,7 @@ export default function AdminDashboard() {
       {/* Admin Sidebar */}
       <aside className="w-72 bg-emerald-900 text-white hidden lg:flex flex-col p-8 sticky top-0 h-screen">
         <div className="mb-12">
-          <h2 className="text-2xl font-black tracking-tighter">EcoSpark Admin</h2>
+          <h2 className="text-2xl font-black tracking-tighter text-white">EcoSpark Admin</h2>
           <p className="text-[10px] font-black uppercase mt-1 text-emerald-400">Management Panel</p>
         </div>
 
@@ -150,7 +147,7 @@ export default function AdminDashboard() {
         {activeTab === 'ideas' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
-                <thead className="bg-gray-50 uppercase text-[10px] font-black">
+                <thead className="bg-gray-50 uppercase text-[10px] font-black border-b">
                    <tr>
                       <th className="px-8 py-6 text-left">Idea Details</th>
                       <th className="px-8 py-6 text-center">Status</th>
@@ -161,44 +158,35 @@ export default function AdminDashboard() {
                    {ideas.map((idea) => (
                       <tr key={idea.id} className="hover:bg-gray-50/50 transition-colors">
                          <td className="px-8 py-6">
-                            <p className="font-black uppercase text-sm">{idea.title}</p>
-                            <div className="flex items-center gap-3 mt-2">
-                              {/* --- এখানে আপভোট আর ডাউনভোট সংখ্যা যোগ করা হয়েছে --- */}
-                              <div className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded-lg">
-                                <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600">
-                                  <ThumbsUp size={12} /> {idea.upvotes || 0}
+                            <p className="font-black uppercase text-sm mb-2 text-gray-900">{idea.title}</p>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
+                                <span className="flex items-center gap-1.5 text-[10px] font-black text-emerald-600">
+                                  <ThumbsUp size={12} className="fill-emerald-600" /> {idea.upvotes || 0}
                                 </span>
-                                <span className="flex items-center gap-1 text-[10px] font-black text-rose-600">
-                                  <ThumbsDown size={12} /> {idea.downvotes || 0}
+                                <div className="w-[1px] h-3 bg-gray-300 mx-1"></div>
+                                <span className="flex items-center gap-1.5 text-[10px] font-black text-rose-600">
+                                  <ThumbsDown size={12} className="fill-rose-600" /> {idea.downvotes || 0}
                                 </span>
                               </div>
-                              
                               {idea.type === 'PAID' && <span className="text-amber-600 text-[8px] font-black bg-amber-50 px-2 py-0.5 rounded border border-amber-100">PAID (${idea.price})</span>}
                               <span className="text-gray-400 text-[8px] font-black bg-gray-50 px-2 py-0.5 rounded border">BY: {idea.author?.name || 'Unknown'}</span>
                             </div>
                          </td>
                          <td className="px-8 py-6 text-center">
-                            <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${idea.status === 'APPROVED' ? 'bg-green-100 text-green-700' : idea.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                            <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase shadow-sm ${idea.status === 'APPROVED' ? 'bg-green-100 text-green-700' : idea.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
                               {idea.status}
                             </span>
                          </td>
                          <td className="px-8 py-6 text-right">
                             <div className="flex gap-2 justify-end">
-                              <Link href={`/ideas/${idea.id}`} className="bg-gray-100 text-gray-700 p-2 rounded-xl hover:bg-gray-900 hover:text-white transition-all duration-300">
+                              <Link href={`/ideas/${idea.id}`} className="bg-gray-100 text-gray-700 p-2.5 rounded-xl hover:bg-gray-900 hover:text-white transition-all duration-300">
                                 <Eye size={16} />
                               </Link>
-                              {/* Approve Button with Hover */}
-                              <button 
-                                onClick={() => handleStatusUpdate(idea.id, 'APPROVED')} 
-                                className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 hover:shadow-lg transition-all duration-300 active:scale-95"
-                              >
+                              <button onClick={() => handleStatusUpdate(idea.id, 'APPROVED')} className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 hover:shadow-lg transition-all duration-300 active:scale-95">
                                 Approve
                               </button>
-                              {/* Reject Button with Hover */}
-                              <button 
-                                onClick={() => handleStatusUpdate(idea.id, 'REJECTED')} 
-                                className="bg-white border border-rose-200 text-rose-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-rose-600 hover:text-white transition-all duration-300 active:scale-95"
-                              >
+                              <button onClick={() => handleStatusUpdate(idea.id, 'REJECTED')} className="bg-white border border-rose-200 text-rose-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-rose-600 hover:text-white transition-all duration-300 active:scale-95">
                                 Reject
                               </button>
                             </div>
@@ -214,7 +202,7 @@ export default function AdminDashboard() {
         {activeTab === 'users' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
-                <thead className="bg-gray-50 uppercase text-[10px] font-black">
+                <thead className="bg-gray-50 uppercase text-[10px] font-black border-b">
                    <tr>
                       <th className="px-8 py-6 text-left">Member Info</th>
                       <th className="px-8 py-6 text-center">Role</th>
@@ -223,7 +211,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                    {users.map((u) => (
-                      <tr key={u.id}>
+                      <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
                          <td className="px-8 py-6">
                             <p className="font-black text-gray-900">{u.name}</p>
                             <p className="text-xs text-gray-400">{u.email}</p>
@@ -235,7 +223,7 @@ export default function AdminDashboard() {
                             {u.role !== 'ADMIN' && (
                               <button 
                                 onClick={() => handleUserStatus(u.id, u.isActive)}
-                                className={`flex items-center gap-2 ml-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase transition ${!u.isActive ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-100' : 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100'}`}
+                                className={`flex items-center gap-2 ml-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all duration-300 ${!u.isActive ? 'bg-green-50 text-green-600 border border-green-200 hover:bg-green-600 hover:text-white' : 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-600 hover:text-white'}`}
                               >
                                 {!u.isActive ? <><UserCheck size={14}/> Activate</> : <><UserMinus size={14}/> Deactivate</>}
                               </button>
@@ -252,7 +240,7 @@ export default function AdminDashboard() {
         {activeTab === 'sales' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
-                <thead className="bg-gray-50 uppercase text-[10px] font-black">
+                <thead className="bg-gray-50 uppercase text-[10px] font-black border-b">
                    <tr>
                       <th className="px-8 py-6 text-left">Purchased Idea</th>
                       <th className="px-8 py-6 text-left">Customer</th>
@@ -262,13 +250,13 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                    {purchases.length > 0 ? (
-                     purchases.map((sale: any) => (
-                        <tr key={sale.id}>
-                           <td className="px-8 py-6 font-black uppercase text-xs">
+                     purchases.map((sale) => (
+                        <tr key={sale.id} className="hover:bg-gray-50/50 transition-colors">
+                           <td className="px-8 py-6 font-black uppercase text-xs text-gray-900">
                              {sale.idea?.title || 'N/A'}
                            </td>
                            <td className="px-8 py-6">
-                              <p className="font-bold text-sm">{sale.user?.name || 'Unknown'}</p>
+                              <p className="font-bold text-sm text-gray-800">{sale.user?.name || 'Unknown'}</p>
                               <p className="text-[10px] text-gray-400">{sale.user?.email || ''}</p>
                            </td>
                            <td className="px-8 py-6 text-center font-black text-emerald-600">
