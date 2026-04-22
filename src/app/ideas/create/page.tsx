@@ -12,7 +12,7 @@ import {
   FileText, 
   Lock,
   Globe,
-  BadgeIndianRupee // টাকার কাছাকাছি আইকন হিসেবে এটি ব্যবহার করতে পারেন অথবা সাধারণ টেক্সট
+  CircleDollarSign 
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -21,7 +21,7 @@ export default function CreateIdeaPage() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('General');
   const [isPaid, setIsPaid] = useState(false);
-  const [price, setPrice] = useState('500'); // ডিফল্ট প্রাইস ৫০০ টাকা করে দিলাম
+  const [price, setPrice] = useState('500'); 
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -30,31 +30,42 @@ export default function CreateIdeaPage() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      toast.error('আইডিয়া শেয়ার করতে আগে লগইন করুন');
+      toast.error('আইডিয়া শেয়ার করতে আগে লগইন করুন');
       router.push('/login');
     }
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!title || !description) {
-      toast.error('দয়া করে সব ঘর পূরণ করুন');
+      toast.error('দয়া করে সব ঘর পূরণ করুন');
       return;
     }
 
     setLoading(true);
     try {
-      await api.post('/ideas', {
+      // ব্যাকএন্ডের রিকোয়ারমেন্ট অনুযায়ী ডাটা অবজেক্ট তৈরি
+      const payload = {
         title,
         description,
+        // যদি ব্যাকএন্ড এই নিচের নামগুলো চায় (আপনার ড্যাশবোর্ড অনুযায়ী)
+        problemStatement: description.substring(0, 100), // প্রথম ১০০ অক্ষর প্রবলেম হিসেবে
+        proposedSolution: description, 
         category,
         isPaid,
-        price: isPaid ? parseFloat(price) : 0
-      });
-      toast.success('আইডিয়াটি জমা হয়েছে! অ্যাডমিন অ্যাপ্রুভ করলে এটি দেখা যাবে। 🎉');
+        price: isPaid ? parseFloat(price) : 0,
+        // একটি ডিফল্ট ইমেজ লিঙ্ক যাতে 'Required' এরর না দেয়
+        image: "https://images.unsplash.com/photo-1473300221329-027213af9fca?q=80&w=2000" 
+      };
+
+      await api.post('/ideas', payload);
+      
+      toast.success('আইডিয়াটি সফলভাবে জমা হয়েছে! 🎉');
       router.push('/dashboard/member');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'আইডিয়া সাবমিট করতে সমস্যা হয়েছে');
+      console.error("Submission Error:", error.response?.data);
+      toast.error(error.response?.data?.message || 'আইডিয়া সাবমিট করতে সমস্যা হয়েছে');
     } finally {
       setLoading(false);
     }
@@ -90,7 +101,7 @@ export default function CreateIdeaPage() {
                   type="text" 
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="যেমন: সোলার চালিত ওয়াটার ফিল্টার"
+                  placeholder="যেমন: সোলার চালিত ওয়াটার ফিল্টার"
                   className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-gray-900 font-bold outline-none focus:ring-2 ring-emerald-500/20 transition-all"
                   required
                 />
@@ -118,12 +129,12 @@ export default function CreateIdeaPage() {
               {/* Description */}
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                  <FileText size={14} className="text-emerald-600" /> Description
+                  <FileText size={14} className="text-emerald-600" /> Detailed Idea
                 </label>
                 <textarea 
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="আপনার আইডিয়া সম্পর্কে বিস্তারিত লিখুন..."
+                  placeholder="আপনার আইডিয়া সম্পর্কে বিস্তারিত লিখুন..."
                   rows={6}
                   className="w-full bg-gray-50 border-none rounded-3xl py-4 px-6 text-gray-900 font-medium outline-none focus:ring-2 ring-emerald-500/20 transition-all resize-none"
                   required
@@ -158,7 +169,7 @@ export default function CreateIdeaPage() {
                     className="space-y-3"
                   >
                     <label className="text-[10px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-2">
-                      <BadgeIndianRupee size={14} /> Set Price (BDT ৳)
+                      <CircleDollarSign size={14} /> Set Price (BDT ৳)
                     </label>
                     <input 
                       type="number" 
