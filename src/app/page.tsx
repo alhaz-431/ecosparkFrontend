@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react'; // useRef যোগ করা হয়েছে
 import Link from 'next/link';
 import Image from 'next/image';
 import api from '@/lib/axios';
@@ -17,9 +17,12 @@ export default function HomePage() {
   const [ideas, setIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // --- নতুন স্টেট: সার্চ এবং ফিল্টারের জন্য ---
+  // --- স্টেট: সার্চ এবং ফিল্টারের জন্য ---
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+
+  // স্ক্রল করার জন্য রেফারেন্স
+  const ideasSectionRef = useRef<HTMLDivElement>(null);
 
   // ক্যাটাগরি ডাটা
   const categories = [
@@ -32,12 +35,14 @@ export default function HomePage() {
   // যখনই ক্যাটাগরি চেঞ্জ হবে অটোমেটিক ডাটা লোড হবে
   useEffect(() => {
     fetchInitialData();
+    if (selectedCategory) {
+      scrollToIdeas();
+    }
   }, [selectedCategory]);
 
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      // কোয়েরি প্যারামিটারসহ এপিআই কল
       const res = await api.get(`/ideas?search=${searchTerm}&category=${selectedCategory}&status=APPROVED`);
       setIdeas(res.data.ideas || res.data.data || []);
     } catch (error) {
@@ -47,10 +52,19 @@ export default function HomePage() {
     }
   };
 
+  // স্ক্রল করার কমন ফাংশন
+  const scrollToIdeas = () => {
+    ideasSectionRef.current?.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'start' 
+    });
+  };
+
   // সার্চ হ্যান্ডলার
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     fetchInitialData();
+    scrollToIdeas(); // সার্চ করলে আইডিয়া সেকশনে নিয়ে যাবে
   };
 
   return (
@@ -165,7 +179,7 @@ export default function HomePage() {
       </section>
 
       {/* --- ৫. লেটেস্ট আইডিয়া গ্রিড --- */}
-      <section className="py-32 px-6 bg-white">
+      <section ref={ideasSectionRef} className="py-32 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-end mb-16">
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 uppercase tracking-tighter leading-none">
