@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/navigation';
+import Link from 'next/link';
 import api from '@/lib/axios';
 import { 
   Lock, 
