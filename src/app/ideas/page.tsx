@@ -11,9 +11,9 @@ import {
   Tag, 
   FileText, 
   Lock,
-  Globe,
+  Globe, 
   CircleDollarSign 
-} from 'lucide-center';
+} from 'lucide-react'; // <--- এখানে 'lucide-react' হবে
 import Link from 'next/link';
 
 export default function CreateIdeaPage() {
