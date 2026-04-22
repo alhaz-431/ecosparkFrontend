@@ -50,7 +50,18 @@ export default function AdminDashboard() {
         api.get('/admin/purchases').catch(err => { console.error("Purchase Error:", err); return { data: [] }; })
       ]);
       
-      setIdeas(Array.isArray(ideasRes.data) ? ideasRes.data : []);
+      // --- এইখানে ভোট গণনার লজিক আপডেট করা হয়েছে ---
+      const formattedIdeas = Array.isArray(ideasRes.data) 
+        ? ideasRes.data.map((idea: any) => ({
+            ...idea,
+            upvotes: idea.votes?.filter((v: any) => v.value > 0).length || 0,
+            downvotes: idea.votes?.filter((v: any) => v.value < 0).length || 0,
+          }))
+        : [];
+
+      setIdeas(formattedIdeas); 
+      // ------------------------------------------
+
       setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
       setPurchases(Array.isArray(purchasesRes.data) ? purchasesRes.data : []);
     } catch (error) {
@@ -143,7 +154,6 @@ export default function AdminDashboard() {
            </div>
         </header>
 
-        {/* Ideas Tab */}
         {activeTab === 'ideas' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
@@ -198,7 +208,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Users Tab */}
         {activeTab === 'users' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
@@ -236,7 +245,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Sales Tab */}
         {activeTab === 'sales' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
