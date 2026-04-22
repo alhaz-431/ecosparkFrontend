@@ -1,195 +1,575 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+
+
+import { useEffect, useState, useCallback } from 'react';
+
 import { useRouter } from 'next/navigation';
-import api from '@/lib/axios';
-import toast, { Toaster } from 'react-hot-toast';
-import { motion } from 'framer-motion';
-import { 
-  ChevronLeft, 
-  Plus, 
-  Tag, 
-  FileText, 
-  Lock,
-  Globe, 
-  CircleDollarSign 
-} from 'lucide-react'; // <--- এখানে 'lucide-react' হবে
+
 import Link from 'next/link';
 
-export default function CreateIdeaPage() {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Energy');
-  const [isPaid, setIsPaid] = useState(false);
-  const [price, setPrice] = useState('500'); 
-  const [loading, setLoading] = useState(false);
+import api from '@/lib/axios';
+
+import toast, { Toaster } from 'react-hot-toast';
+
+import {
+
+  Search,
+
+  ChevronLeft,
+
+  ChevronRight,
+
+  ThumbsUp,
+
+  ShoppingCart,
+
+  Plus
+
+} from 'lucide-react';
+
+import { motion } from 'framer-motion';
+
+
+
+export default function IdeasPage() {
+
   const router = useRouter();
 
-  const categories = ["Energy", "Waste", "Transportation", "Water", "Farming", "General"];
+  const [ideas, setIdeas] = useState<any[]>([]);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('আইডিয়া শেয়ার করতে আগে লগইন করুন');
-      router.push('/login');
-    }
-  }, [router]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title || !description) {
-      toast.error('দয়া করে টাইটেল এবং বর্ণনা লিখুন');
-      return;
-    }
+  const [search, setSearch] = useState('');
+
+  const [category, setCategory] = useState('');
+
+  const [sort, setSort] = useState('recent');
+
+  const [page, setPage] = useState(1);
+
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [votingId, setVotingId] = useState<string | null>(null);
+
+
+
+  const categories = ["Energy", "Waste", "Transportation", "Water", "Farming"];
+
+
+
+  const fetchIdeas = useCallback(async () => {
 
     setLoading(true);
-    try {
-      // এই অবজেক্টটি আপনার ব্যাকএন্ডের সব রিকোয়ারমেন্ট পূরণ করবে
-      const payload = {
-        title,
-        description,
-        problemStatement: description.substring(0, 50) + "...", // ডামি প্রবলেম স্টেটমেন্ট
-        proposedSolution: description, // ডামি সলিউশন
-        category,
-        isPaid,
-        price: isPaid ? parseFloat(price) : 0,
-        // ছবির এরর বন্ধ করার জন্য একটি ডিফল্ট ইমেজ লিঙ্ক
-        image: "https://images.unsplash.com/photo-1473300221329-027213af9fca?q=80&w=2000" 
-      };
 
-      await api.post('/ideas', payload);
-      
-      toast.success('আইডিয়াটি সফলভাবে পোস্ট হয়েছে! 🎉');
-      
-      setTimeout(() => {
-        router.push('/dashboard/member');
-      }, 2000);
+    try {
+
+      const res = await api.get(`/ideas?search=${search}&category=${category}&sort=${sort}&page=${page}&limit=10`);
+
+      const fetchedData = res.data?.data || res.data?.ideas || res.data || [];
+
+      setIdeas(Array.isArray(fetchedData) ? fetchedData : []);
+
+      setTotalPages(res.data.totalPages || 1);
 
     } catch (error: any) {
-      console.error("Error details:", error.response?.data);
-      // যদি ব্যাকএন্ড থেকে নির্দিষ্ট কোনো এরর মেসেজ আসে সেটা দেখাবে
-      toast.error(error.response?.data?.message || 'সবগুলো ঘর ঠিকভাবে পূরণ করুন (ছবি বা অন্যান্য ফিল্ড মিসিং হতে পারে)');
+
+      console.error("Fetch error:", error);
+
+      toast.error('আইডিয়া লোড করতে সমস্যা হচ্ছে!');
+
     } finally {
+
       setLoading(false);
+
     }
+
+  }, [search, category, sort, page]);
+
+
+
+  useEffect(() => {
+
+    fetchIdeas();
+
+  }, [fetchIdeas]);
+
+
+
+  const handlePurchaseNavigation = (id: string) => {
+
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+
+      toast.error('কেনার আগে লগইন করুন!');
+
+      router.push('/login');
+
+      return;
+
+    }
+
+    router.push(`/purchase/${id}`);
+
   };
 
+
+
+  // --- ভোট ফাংশন (Toast + Instant Number + Color Fix) ---
+
+  const handleVote = async (id: string, direction: 'up' | 'down') => {
+
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+
+      toast.error('Please login to vote');
+
+      return;
+
+    }
+
+
+
+    const voteValue = direction === 'up' ? 1 : -1;
+
+
+
+    // ১. অপ্টিমিস্টিক আপডেট (যাতে সাথে সাথে সংখ্যা ০ থেকে ১ হয়)
+
+    const previousIdeas = [...ideas];
+
+    const updatedIdeas = ideas.map((idea) => {
+
+      if (idea.id === id) {
+
+        const isRemoving = idea.userVote === voteValue;
+
+       
+
+        let newUpvotes = idea.upvotes || 0;
+
+        let newDownvotes = idea.downvotes || 0;
+
+
+
+        if (direction === 'up') {
+
+          if (isRemoving) {
+
+            newUpvotes = Math.max(0, newUpvotes - 1);
+
+          } else {
+
+            newUpvotes += 1;
+
+            if (idea.userVote === -1) newDownvotes = Math.max(0, newDownvotes - 1);
+
+          }
+
+        } else {
+
+          if (isRemoving) {
+
+            newDownvotes = Math.max(0, newDownvotes - 1);
+
+          } else {
+
+            newDownvotes += 1;
+
+            if (idea.userVote === 1) newUpvotes = Math.max(0, newUpvotes - 1);
+
+          }
+
+        }
+
+
+
+        return {
+
+          ...idea,
+
+          userVote: isRemoving ? 0 : voteValue,
+
+          upvotes: newUpvotes,
+
+          downvotes: newDownvotes
+
+        };
+
+      }
+
+      return idea;
+
+    });
+
+
+
+    setIdeas(updatedIdeas);
+
+
+
+    // ২. এপিআই কল এবং টোস্ট মেসেজ
+
+    try {
+
+      const res = await api.post(`/votes/${id}/vote`, { value: voteValue });
+
+     
+
+      // টোস্ট মেসেজ দেখানো
+
+      if (res.data.message === 'Vote removed') {
+
+        toast.success('Vote removed');
+
+      } else {
+
+        toast.success('Vote recorded!');
+
+      }
+
+
+
+    } catch (error: any) {
+
+      // এরর হলে আগের ডাটাতে ব্যাক করবে
+
+      setIdeas(previousIdeas);
+
+      toast.error(error.response?.data?.message || 'Voting failed');
+
+    }
+
+  };
+
+
+
   return (
-    <div className="bg-gray-50 min-h-screen pt-28 pb-12 px-6">
+
+    <div className="bg-gray-50 dark:bg-gray-950 min-h-screen pt-28 pb-12 px-6">
+
       <Toaster position="top-center" />
-      
-      <div className="max-w-3xl mx-auto">
-        <Link href="/dashboard/member" className="inline-flex items-center gap-2 text-gray-400 hover:text-emerald-600 font-black text-sm mb-8 transition-all uppercase tracking-widest">
-          <ChevronLeft size={18} /> Back to Dashboard
-        </Link>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-[48px] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden"
-        >
-          <div className="p-12">
-            <div className="mb-10">
-              <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-2 uppercase">Share Your Idea</h1>
-              <p className="text-gray-500 font-medium italic">Spark a change by contributing your sustainability vision.</p>
-            </div>
+     
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Title */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                  <Tag size={14} className="text-emerald-600" /> Idea Title
-                </label>
-                <input 
-                  type="text" 
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="যেমন: Solar Irrigation System"
-                  className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-gray-900 font-bold outline-none focus:ring-2 ring-emerald-500/20 transition-all"
-                />
-              </div>
+      <div className="max-w-7xl mx-auto">
 
-              {/* Category */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                  <Globe size={14} className="text-emerald-600" /> Category
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  {categories.map(cat => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCategory(cat)}
-                      className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${category === cat ? 'bg-emerald-600 text-white' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        <div className="mb-12 text-center">
 
-              {/* Description */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-2">
-                  <FileText size={14} className="text-emerald-600" /> Detailed Idea
-                </label>
-                <textarea 
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="আপনার আইডিয়া সম্পর্কে বিস্তারিত লিখুন..."
-                  rows={6}
-                  className="w-full bg-gray-50 border-none rounded-3xl py-4 px-6 text-gray-900 font-medium outline-none focus:ring-2 ring-emerald-500/20 transition-all resize-none"
-                />
-              </div>
+          <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter uppercase">Community Ideas</h1>
 
-              {/* Premium Toggle */}
-              <div className="bg-emerald-50 p-8 rounded-[32px] border border-emerald-100">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
-                      <Lock size={24} />
-                    </div>
-                    <div>
-                      <h3 className="font-black text-gray-900 uppercase text-sm tracking-tight">Premium Idea</h3>
-                      <p className="text-gray-500 text-[10px] font-bold uppercase tracking-tighter">Set a price for this blueprint.</p>
-                    </div>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => setIsPaid(!isPaid)}
-                    className={`w-14 h-8 rounded-full relative transition-all ${isPaid ? 'bg-emerald-600' : 'bg-gray-300'}`}
-                  >
-                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-sm ${isPaid ? 'left-7' : 'left-1'}`}></div>
-                  </button>
-                </div>
+          <p className="text-gray-500 font-medium mb-8 text-lg">Explore and support sustainable projects from our community.</p>
 
-                {isPaid && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-2">
-                      <CircleDollarSign size={14} /> Price (BDT)
-                    </label>
-                    <input 
-                      type="number" 
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      className="w-full bg-white border-none rounded-2xl py-4 px-6 text-gray-900 font-black text-xl outline-none focus:ring-2 ring-emerald-500/20"
-                    />
-                  </motion.div>
-                )}
-              </div>
+          <Link
 
-              <button 
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gray-900 text-white py-6 rounded-[28px] font-black uppercase tracking-[0.2em] hover:bg-emerald-700 transition-all shadow-xl disabled:opacity-50"
-              >
-                {loading ? 'Submitting...' : 'Post Idea'}
-              </button>
-            </form>
+            href="/ideas/create"
+
+            className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-95"
+
+          >
+
+            <Plus size={20} /> Share New Idea
+
+          </Link>
+
+        </div>
+
+
+
+        {/* Filters & Search Section */}
+
+        <div className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100 mb-10 flex flex-col lg:flex-row gap-4 items-center">
+
+          <div className="relative flex-1 w-full">
+
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+
+            <input
+
+              type="text"
+
+              placeholder="Search ideas..."
+
+              value={search}
+
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-2xl outline-none focus:ring-2 ring-emerald-500/20 transition-all font-medium"
+
+            />
+
           </div>
-        </motion.div>
+
+         
+
+          <div className="flex flex-wrap gap-4 w-full lg:w-auto">
+
+            <select
+
+              value={category}
+
+              onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+
+              className="bg-gray-50 px-4 py-3 rounded-2xl outline-none font-bold text-gray-700 cursor-pointer border-none"
+
+            >
+
+              <option value="">All Categories</option>
+
+              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+
+            </select>
+
+
+
+            <select
+
+              value={sort}
+
+              onChange={(e) => { setSort(e.target.value); setPage(1); }}
+
+              className="bg-gray-50 px-4 py-3 rounded-2xl outline-none font-bold text-gray-700 cursor-pointer border-none"
+
+            >
+
+              <option value="recent">Recent First</option>
+
+              <option value="top_voted">Top Voted</option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+
+        {/* Ideas Grid */}
+
+        {loading ? (
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-pulse">
+
+            {[1, 2, 3].map(i => <div key={i} className="h-[450px] bg-white rounded-[32px] border border-gray-100"></div>)}
+
+          </div>
+
+        ) : (
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            {ideas.map((idea) => (
+
+              <motion.div
+
+                key={idea.id}
+
+                initial={{ opacity: 0, y: 20 }}
+
+                animate={{ opacity: 1, y: 0 }}
+
+                className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden group hover:shadow-2xl transition-all flex flex-col"
+
+              >
+
+                {/* Image Section */}
+
+                <div className="h-56 bg-gray-100 relative overflow-hidden">
+
+                  <img
+
+                    src={idea.images?.[0] || `https://picsum.photos/seed/${idea.id}/800/600`}
+
+                    className="w-full h-full object-cover group-hover:scale-110 transition duration-700"
+
+                    alt={idea.title}
+
+                  />
+
+                  <div className="absolute top-4 left-4">
+
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${idea.type === 'PAID' ? 'bg-amber-400 text-white' : 'bg-emerald-500 text-white'}`}>
+
+                      {idea.type === 'PAID' ? 'Premium' : 'Free Idea'}
+
+                    </span>
+
+                  </div>
+
+                </div>
+
+               
+
+                {/* Content Section */}
+
+                <div className="p-8 flex-1 flex flex-col">
+
+                  <h3 className="text-2xl font-black text-gray-900 mb-3 line-clamp-1 tracking-tight">{idea.title}</h3>
+
+                  <p className="text-gray-500 text-sm line-clamp-2 mb-8 font-medium flex-1 leading-relaxed">{idea.description}</p>
+
+                 
+
+                  {/* Vote & Action Section */}
+
+                  <div className="flex items-center justify-between pt-6 border-t border-gray-50 mt-auto">
+
+                    <div className="flex items-center gap-3">
+
+                      {/* Upvote Button */}
+
+                      <button
+
+                        onClick={() => handleVote(idea.id, 'up')}
+
+                        className={`flex items-center gap-1.5 p-2.5 rounded-xl transition-all duration-300 font-black text-xs uppercase tracking-widest ${
+
+                          idea.userVote === 1
+
+                          ? 'text-emerald-600 bg-emerald-50 shadow-sm'
+
+                          : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50'
+
+                        }`}
+
+                      >
+
+                        <ThumbsUp size={18} className={idea.userVote === 1 ? 'fill-emerald-600' : ''} />
+
+                        {idea.upvotes || 0}
+
+                      </button>
+
+
+
+                      {/* Downvote Button */}
+
+                      <button
+
+                        onClick={() => handleVote(idea.id, 'down')}
+
+                        className={`flex items-center gap-1.5 p-2.5 rounded-xl transition-all duration-300 font-black text-xs uppercase tracking-widest ${
+
+                          idea.userVote === -1
+
+                          ? 'text-red-600 bg-red-50 shadow-sm'
+
+                          : 'text-gray-400 hover:text-red-500 hover:bg-red-50/50'
+
+                        }`}
+
+                      >
+
+                        <ThumbsUp size={18} className={`rotate-180 ${idea.userVote === -1 ? 'fill-red-600' : ''}`} />
+
+                        {idea.downvotes || 0}
+
+                      </button>
+
+                    </div>
+
+
+
+                    <div className="flex items-center gap-3">
+
+                      {idea.type === 'PAID' ? (
+
+                        <button
+
+                          onClick={() => handlePurchaseNavigation(idea.id)}
+
+                          className="bg-emerald-600 text-white pl-5 pr-2 py-2 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-700 flex items-center gap-3 transition-all active:scale-95 group/btn"
+
+                        >
+
+                          ৳{idea.price || '0'}
+
+                          <span className="bg-emerald-500 p-2 rounded-xl group-hover/btn:bg-emerald-400 transition-colors">
+
+                            <ShoppingCart size={16} />
+
+                          </span>
+
+                        </button>
+
+                      ) : (
+
+                        <Link
+
+                          href={`/ideas/${idea.id}`}
+
+                          className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-600 transition-all active:scale-95"
+
+                        >
+
+                          View Details
+
+                        </Link>
+
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </motion.div>
+
+            ))}
+
+          </div>
+
+        )}
+
+
+
+        {/* Pagination Section */}
+
+        {totalPages > 1 && (
+
+          <div className="mt-16 flex justify-center items-center gap-6">
+
+            <button
+
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+
+              disabled={page === 1}
+
+              className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 disabled:opacity-30 hover:border-emerald-500 transition-colors"
+
+            >
+
+              <ChevronLeft size={24} />
+
+            </button>
+
+            <span className="font-black text-gray-900 text-lg tracking-tighter">Page {page} / {totalPages}</span>
+
+            <button
+
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+
+              disabled={page === totalPages}
+
+              className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 disabled:opacity-30 hover:border-emerald-500 transition-colors"
+
+            >
+
+              <ChevronRight size={24} />
+
+            </button>
+
+          </div>
+
+        )}
+
       </div>
+
     </div>
+
   );
+
 }
