@@ -57,30 +57,48 @@ export default function IdeasPage() {
     router.push(`/purchase/${id}`); 
   };
 
-  // --- ভোট ফাংশন (পুরোপুরি ঠিক করা হয়েছে) ---
+  // --- আপডেট করা ভোট ফাংশন (কালার সাথে সাথে চেঞ্জ হবে) ---
   const handleVote = async (id: string, direction: 'up' | 'down') => {
     const token = localStorage.getItem('token');
     if (!token) {
-      toast.error('Please login to vote');
+      toast.error('ভোট দিতে আগে লগইন করুন!');
       return;
     }
 
-    setVotingId(id);
+    const voteValue = direction === 'up' ? 1 : -1;
+
+    // ১. অপ্টিমিস্টিক আপডেট: এপিআই কলের আগেই স্টেট চেঞ্জ করে দিচ্ছি
+    const previousIdeas = [...ideas]; // ব্যাকআপ রাখছি যদি এরর হয়
+    const updatedIdeas = ideas.map((idea) => {
+      if (idea.id === id) {
+        const isRemoving = idea.userVote === voteValue;
+        
+        return {
+          ...idea,
+          userVote: isRemoving ? 0 : voteValue,
+          upvotes: direction === 'up' 
+            ? (isRemoving ? idea.upvotes - 1 : (idea.userVote === -1 ? idea.upvotes + 1 : idea.upvotes + 1))
+            : (idea.userVote === 1 ? idea.upvotes - 1 : idea.upvotes),
+          downvotes: direction === 'down'
+            ? (isRemoving ? idea.downvotes - 1 : (idea.userVote === 1 ? idea.downvotes + 1 : idea.downvotes + 1))
+            : (idea.userVote === -1 ? idea.downvotes - 1 : idea.downvotes)
+        };
+      }
+      return idea;
+    });
+
+    setIdeas(updatedIdeas);
+
+    // ২. সার্ভারে রিকোয়েস্ট পাঠানো
     try {
-      // আপনার ব্যাকএন্ড কন্ট্রোলার অনুযায়ী value: 1 বা -1 পাঠাতে হবে
-      const voteValue = direction === 'up' ? 1 : -1;
-      
-      // পাথ: /api/votes/:id/vote
       const res = await api.post(`/votes/${id}/vote`, { value: voteValue });
-      
       if (res.status === 200 || res.status === 201) {
-        toast.success(res.data.message === 'Vote removed' ? 'Vote removed' : 'Vote recorded!');
-        fetchIdeas(); // সংখ্যা আপডেট করার জন্য পুনরায় কল
+        // সফল হলে কিছু করার দরকার নেই, কারণ স্টেট আগেই আপডেট হয়েছে
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Voting failed');
-    } finally {
-      setVotingId(null);
+      // যদি সার্ভারে এরর হয়, তবে আগের ডাটা ফিরিয়ে আনবে
+      setIdeas(previousIdeas);
+      toast.error(error.response?.data?.message || 'ভোট দিতে সমস্যা হয়েছে');
     }
   };
 
@@ -90,7 +108,7 @@ export default function IdeasPage() {
       
       <div className="max-w-7xl mx-auto">
         <div className="mb-12 text-center">
-          <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">Community Ideas</h1>
+          <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter uppercase">Community Ideas</h1>
           <p className="text-gray-500 font-medium mb-8 text-lg">Explore and support sustainable projects from our community.</p>
           <Link 
             href="/ideas/create"
@@ -167,24 +185,30 @@ export default function IdeasPage() {
                   <h3 className="text-2xl font-black text-gray-900 mb-3 line-clamp-1 tracking-tight">{idea.title}</h3>
                   <p className="text-gray-500 text-sm line-clamp-2 mb-8 font-medium flex-1 leading-relaxed">{idea.description}</p>
                   
-                  {/* Vote & Action Section (সংশোধিত) */}
+                  {/* Vote & Action Section */}
                   <div className="flex items-center justify-between pt-6 border-t border-gray-50 mt-auto">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       {/* Upvote Button */}
                       <button 
                         onClick={() => handleVote(idea.id, 'up')}
-                        disabled={votingId === idea.id}
-                        className={`flex items-center gap-1 transition-colors font-black text-xs uppercase tracking-widest ${idea.userVote === 1 ? 'text-emerald-600' : 'text-gray-400 hover:text-emerald-500'}`}
+                        className={`flex items-center gap-1.5 p-2.5 rounded-xl transition-all duration-300 font-black text-xs uppercase tracking-widest ${
+                          idea.userVote === 1 
+                          ? 'text-emerald-600 bg-emerald-50' 
+                          : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50'
+                        }`}
                       >
                         <ThumbsUp size={18} className={idea.userVote === 1 ? 'fill-emerald-600' : ''} /> 
                         {idea.upvotes || 0}
                       </button>
 
-                      {/* Downvote Button (উল্টানো থাম্বস-আপ) */}
+                      {/* Downvote Button */}
                       <button 
                         onClick={() => handleVote(idea.id, 'down')}
-                        disabled={votingId === idea.id}
-                        className={`flex items-center gap-1 transition-colors font-black text-xs uppercase tracking-widest ${idea.userVote === -1 ? 'text-red-600' : 'text-gray-400 hover:text-red-500'}`}
+                        className={`flex items-center gap-1.5 p-2.5 rounded-xl transition-all duration-300 font-black text-xs uppercase tracking-widest ${
+                          idea.userVote === -1 
+                          ? 'text-red-600 bg-red-50' 
+                          : 'text-gray-400 hover:text-red-500 hover:bg-red-50/50'
+                        }`}
                       >
                         <ThumbsUp size={18} className={`rotate-180 ${idea.userVote === -1 ? 'fill-red-600' : ''}`} /> 
                         {idea.downvotes || 0}
