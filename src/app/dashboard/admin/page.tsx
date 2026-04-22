@@ -14,7 +14,9 @@ import {
   ShoppingCart,
   Eye,
   UserCheck,
-  UserMinus
+  UserMinus,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -41,28 +43,27 @@ export default function AdminDashboard() {
     setUser(parsedUser);
     fetchData();
   }, [router]);
-const fetchData = async () => {
-  setLoading(true);
-  try {
-    const [ideasRes, usersRes, purchasesRes] = await Promise.all([
-      api.get('/admin/ideas').catch(err => { console.error("Idea Error:", err); return { data: [] }; }),
-      api.get('/admin/users').catch(err => { console.error("User Error:", err); return { data: [] }; }),
-      api.get('/admin/purchases').catch(err => { console.error("Purchase Error:", err); return { data: [] }; })
-    ]);
-    
-    // ডাটা সেট করার সময় সরাসরি array কিনা চেক করা হচ্ছে
-    setIdeas(Array.isArray(ideasRes.data) ? ideasRes.data : []);
-    setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
-    setPurchases(Array.isArray(purchasesRes.data) ? purchasesRes.data : []);
-  } catch (error) {
-    console.error('General Fetch Error:', error);
-    toast.error('Failed to load dashboard data');
-  } finally {
-    setLoading(false);
-  }
-};
 
-  // --- আইডিয়া স্ট্যাটাস আপডেট ---
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [ideasRes, usersRes, purchasesRes] = await Promise.all([
+        api.get('/admin/ideas').catch(err => { console.error("Idea Error:", err); return { data: [] }; }),
+        api.get('/admin/users').catch(err => { console.error("User Error:", err); return { data: [] }; }),
+        api.get('/admin/purchases').catch(err => { console.error("Purchase Error:", err); return { data: [] }; })
+      ]);
+      
+      setIdeas(Array.isArray(ideasRes.data) ? ideasRes.data : []);
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+      setPurchases(Array.isArray(purchasesRes.data) ? purchasesRes.data : []);
+    } catch (error) {
+      console.error('General Fetch Error:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleStatusUpdate = async (id: string, status: string) => {
     try {
       let feedbackNote = '';
@@ -78,17 +79,13 @@ const fetchData = async () => {
     }
   };
 
-  // --- মেম্বার অ্যাক্টিভ/ডিঅ্যাক্টিভ করার সংশোধিত ফাংশন ---
   const handleUserStatus = async (userId: string, currentIsActive: boolean) => {
     try {
       const action = currentIsActive ? 'deactivate' : 'activate';
       if (!confirm(`Are you sure you want to ${action} this user?`)) return;
-      
-      // ব্যাকএন্ড রাউট: /admin/users/:id/toggle
       await api.patch(`/admin/users/${userId}/toggle`);
-      
       toast.success(`User ${action}d successfully!`);
-      fetchData(); // ডাটা রিফ্রেশ
+      fetchData();
     } catch (error) {
       toast.error('Failed to update user status');
     }
@@ -138,11 +135,11 @@ const fetchData = async () => {
         <header className="mb-12">
            <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-2">Admin Control Center</h1>
            <div className="flex gap-4 mt-6">
-              <div className="bg-emerald-50 px-8 py-4 rounded-3xl border border-emerald-100">
+              <div className="bg-emerald-50 px-8 py-4 rounded-3xl border border-emerald-100 shadow-sm">
                 <p className="text-[10px] font-black uppercase text-emerald-600">Total Ideas</p>
                 <p className="text-3xl font-black">{ideas.length}</p>
               </div>
-              <div className="bg-blue-50 px-8 py-4 rounded-3xl border border-blue-100">
+              <div className="bg-blue-50 px-8 py-4 rounded-3xl border border-blue-100 shadow-sm">
                 <p className="text-[10px] uppercase font-black text-blue-600">Total Members</p>
                 <p className="text-3xl font-black">{users.length}</p>
               </div>
@@ -165,7 +162,17 @@ const fetchData = async () => {
                       <tr key={idea.id} className="hover:bg-gray-50/50 transition-colors">
                          <td className="px-8 py-6">
                             <p className="font-black uppercase text-sm">{idea.title}</p>
-                            <div className="flex gap-2 mt-1">
+                            <div className="flex items-center gap-3 mt-2">
+                              {/* --- এখানে আপভোট আর ডাউনভোট সংখ্যা যোগ করা হয়েছে --- */}
+                              <div className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded-lg">
+                                <span className="flex items-center gap-1 text-[10px] font-black text-emerald-600">
+                                  <ThumbsUp size={12} /> {idea.upvotes || 0}
+                                </span>
+                                <span className="flex items-center gap-1 text-[10px] font-black text-rose-600">
+                                  <ThumbsDown size={12} /> {idea.downvotes || 0}
+                                </span>
+                              </div>
+                              
                               {idea.type === 'PAID' && <span className="text-amber-600 text-[8px] font-black bg-amber-50 px-2 py-0.5 rounded border border-amber-100">PAID (${idea.price})</span>}
                               <span className="text-gray-400 text-[8px] font-black bg-gray-50 px-2 py-0.5 rounded border">BY: {idea.author?.name || 'Unknown'}</span>
                             </div>
@@ -177,11 +184,23 @@ const fetchData = async () => {
                          </td>
                          <td className="px-8 py-6 text-right">
                             <div className="flex gap-2 justify-end">
-                              <Link href={`/ideas/${idea.id}`} className="bg-gray-100 text-gray-700 p-2 rounded-xl hover:bg-gray-200 transition">
+                              <Link href={`/ideas/${idea.id}`} className="bg-gray-100 text-gray-700 p-2 rounded-xl hover:bg-gray-900 hover:text-white transition-all duration-300">
                                 <Eye size={16} />
                               </Link>
-                              <button onClick={() => handleStatusUpdate(idea.id, 'APPROVED')} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 transition">Approve</button>
-                              <button onClick={() => handleStatusUpdate(idea.id, 'REJECTED')} className="bg-white border border-rose-200 text-rose-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-rose-50 transition">Reject</button>
+                              {/* Approve Button with Hover */}
+                              <button 
+                                onClick={() => handleStatusUpdate(idea.id, 'APPROVED')} 
+                                className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-700 hover:shadow-lg transition-all duration-300 active:scale-95"
+                              >
+                                Approve
+                              </button>
+                              {/* Reject Button with Hover */}
+                              <button 
+                                onClick={() => handleStatusUpdate(idea.id, 'REJECTED')} 
+                                className="bg-white border border-rose-200 text-rose-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-rose-600 hover:text-white transition-all duration-300 active:scale-95"
+                              >
+                                Reject
+                              </button>
                             </div>
                          </td>
                       </tr>
@@ -229,7 +248,7 @@ const fetchData = async () => {
           </div>
         )}
 
-        {/* Sales Tab (সংশোধিত পেমেন্ট লজিক) */}
+        {/* Sales Tab */}
         {activeTab === 'sales' && (
           <div className="bg-white rounded-[40px] border shadow-sm overflow-hidden">
              <table className="w-full">
@@ -253,7 +272,7 @@ const fetchData = async () => {
                               <p className="text-[10px] text-gray-400">{sale.user?.email || ''}</p>
                            </td>
                            <td className="px-8 py-6 text-center font-black text-emerald-600">
-                              ${sale.amount}
+                             ${sale.amount}
                            </td>
                            <td className="px-8 py-6 text-right text-[10px] text-gray-500 font-bold">
                               {new Date(sale.createdAt).toLocaleDateString()}

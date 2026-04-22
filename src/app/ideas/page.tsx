@@ -57,31 +57,46 @@ export default function IdeasPage() {
     router.push(`/purchase/${id}`); 
   };
 
-  // --- আপডেট করা ভোট ফাংশন (কালার সাথে সাথে চেঞ্জ হবে) ---
+  // --- ভোট ফাংশন (Toast + Instant Number + Color Fix) ---
   const handleVote = async (id: string, direction: 'up' | 'down') => {
     const token = localStorage.getItem('token');
     if (!token) {
-      toast.error('ভোট দিতে আগে লগইন করুন!');
+      toast.error('Please login to vote');
       return;
     }
 
     const voteValue = direction === 'up' ? 1 : -1;
 
-    // ১. অপ্টিমিস্টিক আপডেট: এপিআই কলের আগেই স্টেট চেঞ্জ করে দিচ্ছি
-    const previousIdeas = [...ideas]; // ব্যাকআপ রাখছি যদি এরর হয়
+    // ১. অপ্টিমিস্টিক আপডেট (যাতে সাথে সাথে সংখ্যা ০ থেকে ১ হয়)
+    const previousIdeas = [...ideas]; 
     const updatedIdeas = ideas.map((idea) => {
       if (idea.id === id) {
         const isRemoving = idea.userVote === voteValue;
         
+        let newUpvotes = idea.upvotes || 0;
+        let newDownvotes = idea.downvotes || 0;
+
+        if (direction === 'up') {
+          if (isRemoving) {
+            newUpvotes = Math.max(0, newUpvotes - 1);
+          } else {
+            newUpvotes += 1;
+            if (idea.userVote === -1) newDownvotes = Math.max(0, newDownvotes - 1);
+          }
+        } else {
+          if (isRemoving) {
+            newDownvotes = Math.max(0, newDownvotes - 1);
+          } else {
+            newDownvotes += 1;
+            if (idea.userVote === 1) newUpvotes = Math.max(0, newUpvotes - 1);
+          }
+        }
+
         return {
           ...idea,
           userVote: isRemoving ? 0 : voteValue,
-          upvotes: direction === 'up' 
-            ? (isRemoving ? idea.upvotes - 1 : (idea.userVote === -1 ? idea.upvotes + 1 : idea.upvotes + 1))
-            : (idea.userVote === 1 ? idea.upvotes - 1 : idea.upvotes),
-          downvotes: direction === 'down'
-            ? (isRemoving ? idea.downvotes - 1 : (idea.userVote === 1 ? idea.downvotes + 1 : idea.downvotes + 1))
-            : (idea.userVote === -1 ? idea.downvotes - 1 : idea.downvotes)
+          upvotes: newUpvotes,
+          downvotes: newDownvotes
         };
       }
       return idea;
@@ -89,16 +104,21 @@ export default function IdeasPage() {
 
     setIdeas(updatedIdeas);
 
-    // ২. সার্ভারে রিকোয়েস্ট পাঠানো
+    // ২. এপিআই কল এবং টোস্ট মেসেজ
     try {
       const res = await api.post(`/votes/${id}/vote`, { value: voteValue });
-      if (res.status === 200 || res.status === 201) {
-        // সফল হলে কিছু করার দরকার নেই, কারণ স্টেট আগেই আপডেট হয়েছে
+      
+      // টোস্ট মেসেজ দেখানো
+      if (res.data.message === 'Vote removed') {
+        toast.success('Vote removed');
+      } else {
+        toast.success('Vote recorded!');
       }
+
     } catch (error: any) {
-      // যদি সার্ভারে এরর হয়, তবে আগের ডাটা ফিরিয়ে আনবে
-      setIdeas(previousIdeas);
-      toast.error(error.response?.data?.message || 'ভোট দিতে সমস্যা হয়েছে');
+      // এরর হলে আগের ডাটাতে ব্যাক করবে
+      setIdeas(previousIdeas); 
+      toast.error(error.response?.data?.message || 'Voting failed');
     }
   };
 
@@ -193,7 +213,7 @@ export default function IdeasPage() {
                         onClick={() => handleVote(idea.id, 'up')}
                         className={`flex items-center gap-1.5 p-2.5 rounded-xl transition-all duration-300 font-black text-xs uppercase tracking-widest ${
                           idea.userVote === 1 
-                          ? 'text-emerald-600 bg-emerald-50' 
+                          ? 'text-emerald-600 bg-emerald-50 shadow-sm' 
                           : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50/50'
                         }`}
                       >
@@ -206,7 +226,7 @@ export default function IdeasPage() {
                         onClick={() => handleVote(idea.id, 'down')}
                         className={`flex items-center gap-1.5 p-2.5 rounded-xl transition-all duration-300 font-black text-xs uppercase tracking-widest ${
                           idea.userVote === -1 
-                          ? 'text-red-600 bg-red-50' 
+                          ? 'text-red-600 bg-red-50 shadow-sm' 
                           : 'text-gray-400 hover:text-red-500 hover:bg-red-50/50'
                         }`}
                       >
