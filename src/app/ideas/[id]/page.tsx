@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Link from 'next/navigation';
 import api from '@/lib/axios';
 import { 
   Lock, 
@@ -49,7 +49,7 @@ export default function IdeaDetailsPage() {
     if (id) fetchIdea();
   }, [id, fetchIdea]);
 
-  // --- ভোট ফাংশন (পুরোপুরি আপডেট করা হয়েছে) ---
+  // --- ভোট ফাংশন (পুরোপুরি ঠিক করা হয়েছে) ---
   const handleVote = async (e: React.MouseEvent, direction: 'up' | 'down') => {
     e.preventDefault();
 
@@ -60,19 +60,26 @@ export default function IdeaDetailsPage() {
     }
 
     const voteValue = direction === 'up' ? 1 : -1;
-    const previousIdea = { ...idea }; // এরর হলে ব্যাকআপ রাখার জন্য
+    const previousIdea = { ...idea }; // Error হলে আগের অবস্থায় ফেরার জন্য ব্যাকআপ
 
-    // ১. Optimistic Update: ক্লিক করার সাথে সাথেই UI আপডেট হবে
+    // ১. Optimistic Update: ক্লিক করার সাথে সাথেই UI আপডেট হবে (No flickering)
     setIdea((prev: any) => {
       if (!prev) return prev;
 
-      // বর্তমান ভোটের অবস্থা অনুযায়ী সংখ্যা ঠিক করা
       let newUpvotes = prev.upvotes || 0;
       let newDownvotes = prev.downvotes || 0;
+      const currentVote = prev.userVote; // আগের ভোটের অবস্থা (১, -১ বা ০)
+
+      // যদি ইউজার একই বাটনে আবার ক্লিক করে (ভোট বাতিল করা)
+      if (currentVote === voteValue) {
+        if (voteValue === 1) newUpvotes = Math.max(0, newUpvotes - 1);
+        if (voteValue === -1) newDownvotes = Math.max(0, newDownvotes - 1);
+        return { ...prev, userVote: 0, upvotes: newUpvotes, downvotes: newDownvotes };
+      }
 
       // যদি আগে অন্য কোনো ভোট দেওয়া থাকতো, সেটা সরানো
-      if (prev.userVote === 1) newUpvotes -= 1;
-      if (prev.userVote === -1) newDownvotes -= 1;
+      if (currentVote === 1) newUpvotes = Math.max(0, newUpvotes - 1);
+      if (currentVote === -1) newDownvotes = Math.max(0, newDownvotes - 1);
 
       // নতুন ভোট যোগ করা
       if (voteValue === 1) newUpvotes += 1;
@@ -88,8 +95,17 @@ export default function IdeaDetailsPage() {
 
     try {
       // ২. এপিআই কল (পেজ রিফ্রেশ হবে না)
-      await api.post(`/votes/${idea.id}/vote`, { value: voteValue });
-      toast.success('ভোট আপডেট হয়েছে!');
+      const res = await api.post(`/votes/${id}/vote`, { value: voteValue });
+      
+      // ব্যাকএন্ড থেকে লেটেস্ট ডাটা আসলে তা দিয়ে আপডেট করা
+      if (res.data?.data) {
+        setIdea((prev: any) => ({
+          ...prev,
+          upvotes: res.data.data.upvotes,
+          downvotes: res.data.data.downvotes,
+          userVote: res.data.data.userVote
+        }));
+      }
     } catch (error: any) {
       // ৩. এরর হলে আগের অবস্থায় ফিরিয়ে নেওয়া
       setIdea(previousIdea);
@@ -120,9 +136,9 @@ export default function IdeaDetailsPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
       <AlertCircle size={80} className="text-rose-200 mb-6" />
       <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-4 uppercase">Idea Not Found!</h1>
-      <Link href="/ideas" className="bg-gray-900 text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition shadow-xl">
+      <button onClick={() => router.push('/ideas')} className="bg-gray-900 text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition shadow-xl">
         Back to Community
-      </Link>
+      </button>
     </div>
   );
 
@@ -135,9 +151,9 @@ export default function IdeaDetailsPage() {
       <Toaster position="top-center" />
       
       <div className="max-w-4xl mx-auto">
-        <Link href="/ideas" className="inline-flex items-center gap-2 font-black text-sm text-gray-400 mb-8 uppercase tracking-widest hover:text-emerald-600 transition group">
+        <button onClick={() => router.push('/ideas')} className="inline-flex items-center gap-2 font-black text-sm text-gray-400 mb-8 uppercase tracking-widest hover:text-emerald-600 transition group">
           <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Back to Discover
-        </Link>
+        </button>
 
         <div className="bg-white rounded-[48px] border border-gray-100 overflow-hidden shadow-2xl shadow-gray-200/50">
           <div className="h-[450px] bg-gray-100 relative overflow-hidden text-gray-400">
@@ -177,7 +193,7 @@ export default function IdeaDetailsPage() {
                     : 'bg-white text-gray-400 hover:bg-emerald-50 hover:text-emerald-500 border border-gray-100'
                   }`}
                 >
-                  <ThumbsUp size={18} className={idea.userVote === 1 ? 'fill-white' : ''} />
+                  <ThumbsUp size={18} fill={idea.userVote === 1 ? "white" : "none"} />
                   <span>{idea.upvotes || 0}</span>
                 </button>
 
@@ -191,12 +207,13 @@ export default function IdeaDetailsPage() {
                     : 'bg-white text-gray-400 hover:bg-rose-50 hover:text-rose-500 border border-gray-100'
                   }`}
                 >
-                  <ThumbsUp size={18} className={`rotate-180 ${idea.userVote === -1 ? 'fill-white' : ''}`} />
+                  <ThumbsUp size={18} className="rotate-180" fill={idea.userVote === -1 ? "white" : "none"} />
                   <span>{idea.downvotes || 0}</span>
                 </button>
               </div>
             </div>
 
+            {/* বাকি কন্টেন্ট (Author, Summary, etc.) */}
             <div className="flex flex-wrap gap-4 mb-12">
               <div className="bg-gray-50 px-6 py-4 rounded-[24px] flex items-center gap-4 border border-gray-100">
                 <div className="bg-white p-3 rounded-xl shadow-sm text-emerald-600">
