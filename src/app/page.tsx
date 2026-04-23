@@ -32,6 +32,7 @@ export default function HomePage() {
     { name: "Eco Farming", icon: <Leaf size={32} />, color: "bg-green-50 text-green-600" }
   ];
 
+
   // যখনই ক্যাটাগরি চেঞ্জ হবে অটোমেটিক ডাটা লোড হবে
   useEffect(() => {
     fetchInitialData();
@@ -74,7 +75,7 @@ export default function HomePage() {
       {/* --- ১. হিরো ব্যানার --- */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden bg-gray-900">
         <Image 
-          src="https://images.unsplash.com/photo-1473300221329-027213af9fca?q=80&w=2000" 
+          src="ecos.avif" 
           alt="Sustainability Green Background" 
           fill 
           className="object-cover opacity-80"
